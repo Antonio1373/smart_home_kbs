@@ -9,7 +9,7 @@ output_path = os.path.join(output_dir, "valutazione.png")
 
 if not os.path.isfile(input_path):
     print(f"Errore: file di input non trovato: {input_path}")
-    print("Consiglio: esegui 'valuta_sistemi.py'.")
+    print("Consiglio: esegui il punto 6.")
     sys.exit(1)
 
 if not os.path.isdir(output_dir):

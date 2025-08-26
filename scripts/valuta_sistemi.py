@@ -46,7 +46,7 @@ def main():
     file_path = os.path.join(base_dir, "data", dataset_filename)
 
     if not os.path.exists(file_path):
-        print(f"File dati mancante: '{os.path.relpath(file_path)}'.")
+        print(f"File dati mancante: '{os.path.relpath(file_path)}', esegui il punto 1.")
         return
 
     if os.path.exists(output_path):
