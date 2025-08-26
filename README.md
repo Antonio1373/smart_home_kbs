@@ -34,9 +34,13 @@ matplotlib – grafici di analisi e valutazione
 ▶ Come eseguire il sistema
 
 Il punto di ingresso principale è main.py.
-Avvia il sistema con:
+Clonare il repository in locale con il seguente comando:
 
-python main.py
+    git clone https://github.com/Antonio1373/smart_home_kbs.git 
+    
+Spostarsi nella root del progetto e avviare il sistema con il comando:
+
+    python main.py
 
 
 Questo mostrerà un menu numerato con tutte le opzioni (analisi dati, creazione ontologia, addestramento ML, valutazione, ecc.).
