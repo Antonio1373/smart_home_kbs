@@ -54,4 +54,4 @@ cover/
 data/*.csv
 data/*.joblib
 ontology/*.owl
-
+__pycache__/*.pyc
