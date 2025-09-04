@@ -2,31 +2,26 @@ import subprocess
 import os
 
 MENU = {
-    "1": ("Analizza dati sensori", "analisi_dati.py"),
-    "2": ("Crea ontologia ambiente", "ontologia.py"),
-    "3": ("Genera istanze smart home", "genera_istanze.py"),
-    "4": ("Predizione occupazione", "predizione_occupazione.py"),
-    "5": ("Avvia sistema ibrido", "sistema_ibrido.py"),
-    "6": ("Valuta prestazioni sistemi", "valuta_sistemi.py"),
-    "7": ("Applica regole a CSV", "applica_regole_a_csv.py"),
-    "8": ("Valutazione risultati", "valutazione.py"),
-    "9": ("Crea dataset rumoroso", "dataRumoroso.py"),
+    "1": ("Crea ontologia ambiente", "ontologia.py"),
+    "2": ("Genera istanze smart home", "genera_istanze.py"),
+    "3": ("Genera dataset", "genera_dataset.py"),
+    "4": ("Applicazione delle regole SmartHome", "applica_regole.py"),
+    "5": ("Predizione occupazione", "predizione_occupazione.py"),
+    "6": ("Analisi KBS SmartHome", "analisi_KBS.py"),
 }
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "scripts")
 
 FILES_DA_ELIMINARE = [
-    "data/HomeC_with_occupancy.csv",
+    "data/SmartHome.csv",
+    "data/report_KBS_reasoning.csv",
     "ontology/smarthome.owl",
     "ontology/smarthome_popolata.owl",
-    "ontology/smarthome_updated.owl",
-    "ontology/smarthome_rules_applied.owl",
-    "data/risultati.json",
-    "results/valutazione.png",
-    "data/HomeC_noisy.csv",
-    "data/modello_randomforest.joblib",
-    "data/modello_logisticregression.joblib",
-    "data/modello_svm.joblib",
+    "ontology/smarthome_con_azioni.owl",
+    "data/report_verifica_coerenza.csv",
+    "data/modello_RandomForest.joblib",
+    "data/modello_LogisticRegression.joblib",
+    "data/modello_SVM.joblib",
     "data/modello.joblib"
 ]
 

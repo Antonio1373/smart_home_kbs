@@ -1,55 +1,70 @@
-def regola_luce(light, occupancy):
-    if not occupancy:
-        if light >= 300:
+# ---------- REGOLA LUCE ----------
+def regola_luce(illuminazione, occupazione):
+    if not occupazione:
+        if illuminazione >= 300:
             return "Spegni luce"
         return "Nessuna azione"
-    if light < 100:
+    
+    # Stanza occupata
+    if illuminazione < 100:
         return "Accendi luce"
-    elif light > 800:
+    elif illuminazione > 800:
         return "Spegni luce"
     return "Nessuna azione"
 
 
-def regola_riscaldamento(temp, occupancy):
-    if not occupancy:
-        if temp >= 25:
+# ---------- REGOLA RISCALDAMENTO ----------
+def regola_riscaldamento(temperatura, occupazione):
+    if not occupazione:
+        if temperatura >= 25:
             return "Spegni riscaldamento"
         return "Nessuna azione"
-    if occupancy and temp < 19:
+    
+    # Stanza occupata
+    if temperatura < 19:
         return "Accendi riscaldamento"
-    elif temp >= 28:
+    elif temperatura >= 28:
         return "Spegni riscaldamento"
     return "Nessuna azione"
 
-    
-def regola_tapparelle(light, occupancy):
-    if not occupancy:
-        if light >= 800:
+
+# ---------- REGOLA TAPPARELLE ----------
+def regola_tapparelle(illuminazione, occupazione):
+    if not occupazione:
+        if illuminazione >= 800:
             return "Abbassa tapparelle"
         return "Nessuna azione"
-    if light > 800 and occupancy:
+    
+    # Stanza occupata
+    if illuminazione > 800:
         return "Abbassa tapparelle"
-    elif light < 200 and occupancy:
+    elif illuminazione < 200:
         return "Alza tapparelle"
     return "Nessuna azione"
 
 
-def regola_climatizzatore(temp, occupancy):
-    if not occupancy:
-        if temp <= 21:
+# ---------- REGOLA CLIMATIZZATORE ----------
+def regola_climatizzatore(temperatura, occupazione):
+    if not occupazione:
+        if temperatura <= 21:
             return "Spegni climatizzatore"
         return "Nessuna azione"
-    if occupancy and temp > 28:
+    
+    # Stanza occupata
+    if temperatura > 28:
         return "Accendi climatizzatore"
-    elif occupancy and temp <= 28 and temp >= 21:
+    elif 21 <= temperatura <= 28:
         return "Spegni climatizzatore"
     return "Nessuna azione"
 
 
-def azioni_da_regole(light, temp, occupancy):
-    return {
-        regola_luce(light, occupancy),
-        regola_riscaldamento(temp, occupancy),
-        regola_tapparelle(light, occupancy),
-        regola_climatizzatore(temp, occupancy)
-    }
+# ---------- FUNZIONE DI AGGREGAZIONE ----------
+def azioni_da_regole(illuminazione, temperatura, occupazione):
+    azioni = [
+        regola_luce(illuminazione, occupazione),
+        regola_riscaldamento(temperatura, occupazione),
+        regola_tapparelle(illuminazione, occupazione),
+        regola_climatizzatore(temperatura, occupazione)
+    ]
+    # Filtra azioni "Nessuna azione"
+    return [a for a in azioni if a != "Nessuna azione"]

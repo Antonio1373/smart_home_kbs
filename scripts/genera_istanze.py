@@ -1,71 +1,143 @@
-from owlready2 import *     
-import pandas as pd         
-import os                   
+# genera_istanze.py - Versione aggiornata per ontologia SmartHome con reasoner intelligente
+from owlready2 import *
+import uuid
+import os
+import random
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ontology_path = os.path.join(base_dir, "ontology", "smarthome.owl")
-csv_path = os.path.join(base_dir, "data", "HomeC_with_occupancy.csv")
-output_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
+# ----------------- PARAMETRI DI PROGETTO -----------------
+NUM_CASE = 50                   # Numero di case simulate
+STANZE_PER_CASA = ["Soggiorno", "Cucina", "Camera", "Bagno"]
+PERSONE_PER_CASA = 3            # Numero medio di persone per casa
 
-if not os.path.exists(ontology_path) or not os.path.exists(csv_path):
-    print(" File necessari mancanti. Verifica la presenza di:")
-    print(f"- Ontologia: {'PRESENTE' if os.path.exists(ontology_path) else 'ASSENTE'}")
-    print(f"- CSV: {'PRESENTE' if os.path.exists(csv_path) else 'ASSENTE'}")
-    exit()
-
-if os.path.exists(output_path):
-    risposta = input(f"ATTENZIONE: Il file '{os.path.relpath(output_path)}' esiste già. Sovrascrivere? (s/n): ").strip().lower()
-    if risposta != "s":
-        print(" Operazione annullata.")
-        exit()
-
-onto = get_ontology(ontology_path).load()
-
-# Legge il file CSV con i dati, rimuove righe che non hanno temperatura, visibilità o occupazione e prende solo le prime 100 righe per velocità.
-df = pd.read_csv(csv_path, low_memory=False).dropna(subset=['temperature','visibility','occupancy']).head(100)
-
-soggiorno1 = onto.Soggiorno("Soggiorno_Principale")
-soggiorno2 = onto.Soggiorno("Soggiorno_Secondario")
-camera1 = onto.Camera("Camera_Principale")
-cucina1 = onto.Cucina("Cucina_Principale")
-stanze = [soggiorno1, soggiorno2, camera1, cucina1]
-
-# Definisce un dizionario per associare le colonne del CSV ai tipi di dispositivi e alla stanza
-mappa_dispositivi = {
-    "Living room [kW]": onto.Luce,
-    "Furnace 1 [kW]": onto.Riscaldamento,
-    "Furnace 2 [kW]": onto.Riscaldamento, 
-    "AC [kW]": onto.Climatizzatore,
-    "Sun blind [kW]": onto.Tapparella,
+# Intervalli di consumo realistici per i dispositivi (kW)
+CONSUMO_DISPOSITIVI = {
+    "Luce": (0.05, 0.2),
+    "Riscaldamento": (0.5, 2.0),
+    "Climatizzatore": (0.5, 2.0),
+    "Tapparella": (0.05, 0.1),
 }
-with onto:
-    for i, row in df.iterrows():
-        temp = float(row.get("temperature", float('nan')))
-        light = float(row.get("visibility", float('nan')))
-        occ = bool(int(row.get("occupancy", 0)))
 
-        # round-robin fra le stanze
-        stanza = stanze[i % len(stanze)]
+# Parametri per stato ambientale
+TEMPERATURA_MEDIA = 22
+TEMPERATURA_STD = 2
+ILLUMINAZIONE_MEDIA = 400
+ILLUMINAZIONE_STD = 150
+UMIDITA_MEDIA = 45
+UMIDITA_STD = 10
 
-        stato = onto.StatoAmbientale(f"Stato_{stanza.name}_{i}")
-        stato.haTemperatura = float(temp)
-        stato.haVisibilita = float(light)
-        stato.haOccupazione = int(occ)
-        stanza.haStato.append(stato)
+# Probabilità di valori estremi intenzionali (per test reasoner)
+PROB_VALORI_ESTREMI = 0.35
 
-        for col, classe_dispositivo in mappa_dispositivi.items():
-            if col in row and pd.notna(row[col]):
-                try:
-                    consumo = float(row[col])
-                except Exception:
-                    consumo = None
-                # crea un dispositivo per stanza/indice per evitare conflitti nomi
-                disp = classe_dispositivo(f"{classe_dispositivo.name}_{stanza.name}_{i}")
-                if consumo is not None:
-                    disp.haConsumo = consumo
-                stanza.haDispositivo.append(disp)
+# ----------------- FUNZIONE PRINCIPALE -----------------
+def main():
+    print("Generazione istanze SmartHome avanzata...")
 
-onto.save(file=output_path, format="rdfxml")
-print(f" Ontologia popolata e salvata in '{os.path.relpath(output_path)}'")
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    ont_path = os.path.join(base_dir, "ontology", "smarthome.owl")
+    output_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
+
+    if not os.path.exists(ont_path):
+        print(f"Errore: file ontologia non trovato: '{os.path.relpath(ont_path)}'")
+        return
+
+    # Carica ontologia esistente
+    onto = get_ontology(ont_path).load()
+
+    case = []
+    with onto:
+        # ----------------- CREAZIONE CASE E STANZE -----------------
+        for c in range(1, NUM_CASE + 1):
+            casa = onto.Casa(f"Casa{c}")
+            case.append(casa)
+            
+            stanze = []
+            for st_nome in STANZE_PER_CASA:
+                st_class = getattr(onto, st_nome)
+                stanza = st_class(f"{st_nome}_C{c}")
+                stanze.append(stanza)
+            casa.haStanza.extend(stanze)
+
+        # ----------------- CREAZIONE DISPOSITIVI E SENSORI -----------------
+        for casa in case:
+            for stanza in casa.haStanza:
+                # Sensori
+                sensori = [onto.Sensore(f"{nome}Sensor_{stanza.name}") 
+                           for nome in ["Temp", "Light", "Occupancy"]]
+                stanza.haSensore.extend(sensori)
+
+                # Dispositivi
+                dispositivi = [
+                    onto.Luce(f"Luce_{stanza.name}"),
+                    onto.Riscaldamento(f"Riscaldamento_{stanza.name}"),
+                    onto.Climatizzatore(f"Climatizzatore_{stanza.name}"),
+                    onto.Tapparella(f"Tapparella_{stanza.name}")
+                ]
+                stanza.haDispositivo.extend(dispositivi)
+
+                # Consumo realistico dei dispositivi
+                for disp in stanza.haDispositivo:
+                    if isinstance(disp, onto.Luce):
+                        low, high = CONSUMO_DISPOSITIVI["Luce"]
+                    elif isinstance(disp, onto.Riscaldamento):
+                        low, high = CONSUMO_DISPOSITIVI["Riscaldamento"]
+                    elif isinstance(disp, onto.Climatizzatore):
+                        low, high = CONSUMO_DISPOSITIVI["Climatizzatore"]
+                    elif isinstance(disp, onto.Tapparella):
+                        low, high = CONSUMO_DISPOSITIVI["Tapparella"]
+                    disp.haConsumo = round(random.uniform(low, high), 2)
+
+        # ----------------- CREAZIONE PERSONE -----------------
+        for idx, casa in enumerate(case, start=1):
+            for p in range(1, PERSONE_PER_CASA + 1):
+                persona = onto.Persona(f"Persona_C{idx}_{p}")
+                stanza = random.choice(casa.haStanza)
+                stanza.haPresenza.append(persona)
+
+        # ----------------- STATO AMBIENTALE -----------------
+        for casa in case:
+            for stanza in casa.haStanza:
+                stato = onto.StatoAmbientale(f"Stato_{stanza.name}_{uuid.uuid4().hex[:6]}")
+        
+                # Generazione valori realistici
+                stato.haTemperatura = round(random.gauss(TEMPERATURA_MEDIA, TEMPERATURA_STD), 1)
+                stato.haIlluminazione = round(random.gauss(ILLUMINAZIONE_MEDIA, ILLUMINAZIONE_STD), 1)
+                stato.haUmidita = round(random.gauss(UMIDITA_MEDIA, UMIDITA_STD), 1)
+                stato.haOccupazione = bool(stanza.haPresenza)
+
+                # Introduci casi estremi intenzionali
+                if random.random() < PROB_VALORI_ESTREMI:
+                    ext_temp = [17.0, 29.0]
+                    stato.haTemperatura = ext_temp[(c + len(stanza.name)) % 2]
+
+                    ext_light = [50.0, 850.0]
+                    stato.haIlluminazione = ext_light[(c + len(stanza.name)) % 2]
+
+                stanza.haStato.append(stato)
+        
+    # ----------------- ESECUZIONE REASONER -----------------
+    print("\n🔹 Esecuzione reasoner per inferenze sulle stanze...")
+    try:
+        sync_reasoner_pellet(infer_property_values=True)  # Pellete più affidabile con valori numerici
+        print("✅ Reasoner completato: stanze fredde, calde, buie e luminosissime inferite.")
+    except Exception as e:
+        print(f"⚠ Errore nel reasoner: {e}")
+
+    # ----------------- STAMPA CLASSI DERIVATE -----------------
+    for cls in [onto.StanzaCalda, onto.StanzaFredda, onto.StanzaBuia, onto.StanzaLuminosissima,
+            onto.StanzaDaRiscaldare, onto.StanzaDaSpegnereLuce, onto.StanzaEnergiaAlta]:
+        instances = list(cls.instances())
+        print(f"\nClassi dedotte '{cls.__name__}': {len(instances)} istanze")
+        for s in instances:
+            print(f"- {s.name}")
 
 
+
+    # ----------------- SALVATAGGIO ONTOLOGIA -----------------
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    onto.save(file=output_path, format="rdfxml")
+    print(f"✅ Ontologia popolata salvata in '{os.path.relpath(output_path)}'")
+    print(f"Totale case generate: {NUM_CASE}, stanze: {NUM_CASE * len(STANZE_PER_CASA)}, persone: {NUM_CASE * PERSONE_PER_CASA}")
+
+# ----------------- ENTRY POINT -----------------
+if __name__ == "__main__":
+    main()

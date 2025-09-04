@@ -1,85 +1,103 @@
+# ontologia.py - Ontologia SmartHome con reasoner più intelligente
 from owlready2 import *
 import os
 
 def main():
-    print(" Creazione ontologia SmartHome...")
+    print("Creazione ontologia SmartHome avanzata...")
 
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    output_path = os.path.join(base_dir, "ontology", "smarthome.owl")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_dir = os.path.join(base_dir, "ontology")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "smarthome.owl")
 
-    if os.path.exists(output_path):
-        relative_path = os.path.relpath(output_path, os.getcwd())
-        risposta = input(f" ATTENZIONE: Il file '{relative_path}' esiste già. Sovrascrivere? (s/n): ").strip().lower()
-        if risposta != 's':
-            print(" Operazione annullata.")
-            return
-
-    # Crea una nuova ontologia partendo da zero
     onto = get_ontology("http://example.org/ontology/smarthome.owl")
 
     with onto:
-        # === CLASSI PRINCIPALI ===
+        # --- CLASSI BASE ---
+        class Casa(Thing): pass
         class Stanza(Thing): pass
-        class Soggiorno(Stanza): pass
-        class Camera(Stanza): pass  
-        class Cucina(Stanza): pass  
-
+        class Persona(Thing): pass
+        class Dispositivo(Thing): pass
+        class Sensore(Thing): pass
+        class StatoAmbientale(Thing): pass
         class Azione(Thing): pass
-        # Sottoclassi di Azione
+
+        # --- SOTTOCLASSI STANZA ---
+        class Soggiorno(Stanza): pass
+        class Camera(Stanza): pass
+        class Cucina(Stanza): pass
+        class Bagno(Stanza): pass
+
+        # --- SOTTOCLASSI DISPOSITIVO ---
+        class Luce(Dispositivo): pass
+        class Riscaldamento(Dispositivo): pass
+        class Climatizzatore(Dispositivo): pass
+        class Tapparella(Dispositivo): pass
+        class Frigorifero(Dispositivo): pass
+        class Forno(Dispositivo): pass
+
+        # --- SOTTOCLASSI AZIONE ---
         class AccendiLuce(Azione): pass
         class SpegniLuce(Azione): pass
         class AccendiRiscaldamento(Azione): pass
         class SpegniRiscaldamento(Azione): pass
-        class AlzaTapparelle(Azione): pass
-        class AbbassaTapparelle(Azione): pass
         class AccendiClimatizzatore(Azione): pass
         class SpegniClimatizzatore(Azione): pass
+        class AlzaTapparelle(Azione): pass
+        class AbbassaTapparelle(Azione): pass
 
-        class Dispositivo(Thing): pass
-        # Tipi di dispositivi
-        class Tapparella(Dispositivo): pass
-        class Luce(Dispositivo): pass
-        class Riscaldamento(Dispositivo): pass
-        class Climatizzatore(Dispositivo): pass
-        class Forno(Dispositivo): pass
-        class Frigorifero(Dispositivo): pass
-
-        # Proprietà dei dispositivi
-        class haConsumo(Dispositivo >> float, DataProperty): pass  # Consumo energetico
-
-        class Persona(Thing): pass
-        class StatoAmbientale(Thing): pass  # Rappresenta le condizioni della stanza
-
-        # === RELAZIONI ===
-        class haDispositivo(Stanza >> Dispositivo): pass
-        class haStato(Stanza >> StatoAmbientale): pass
-        class haPresenza(Stanza >> Persona): pass
-
-        # Stato ambientale → dati numerici
-        class haTemperatura(StatoAmbientale >> float, DataProperty): pass
-        class haIlluminazione(StatoAmbientale >> float, DataProperty): pass
-        class haOccupazione(StatoAmbientale >> bool, DataProperty): pass
-
-        # Relazione tra stato ambientale e azione suggerita
-        class suggerisceAzione(StatoAmbientale >> Azione): pass
-
-        # Relazioni azione → dispositivo controllato
-        class controllaDispositivo(Azione >> Dispositivo): pass
-        class controllaTapparella(Azione >> Tapparella): pass
-        class controllaLuce(Azione >> Luce): pass
-        class controllaRiscaldamento(Azione >> Riscaldamento): pass
-        class controllaClimatizzatore(Azione >> Climatizzatore): pass
-
-        # DATA PROPERTY (con range/functional)
+        # --- PROPRIETÀ DATI ---
         class haConsumo(Dispositivo >> float, DataProperty, FunctionalProperty): pass
-        class haTemperatura(Dispositivo >> float, DataProperty, FunctionalProperty): pass
-        class haIlluminazione(Dispositivo >> float, DataProperty, FunctionalProperty): pass
+        class haTemperatura(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
+        class haIlluminazione(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haOccupazione(StatoAmbientale >> bool, DataProperty, FunctionalProperty): pass
+        class haUmidita(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
+        class haOrario(StatoAmbientale >> str, DataProperty): pass
 
+        # --- PROPRIETÀ OGGETTO ---
+        class haStanza(Casa >> Stanza, ObjectProperty): pass
+        class haDispositivo(Stanza >> Dispositivo, ObjectProperty): pass
+        class haSensore(Stanza >> Sensore, ObjectProperty): pass
+        class haStato(Stanza >> StatoAmbientale, ObjectProperty): pass
+        class haPresenza(Stanza >> Persona, ObjectProperty): pass
+        class suggerisceAzione(StatoAmbientale >> Azione, ObjectProperty): pass
+        class controllaDispositivo(Azione >> Dispositivo, ObjectProperty): pass
+
+        # --- CLASSI DERIVATE PER REASONING ---
+        # Stato stanza
+        class StanzaFredda(Stanza):
+            equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haTemperatura < 20.0))]
+        class StanzaCalda(Stanza):
+            equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haTemperatura > 28.0))]
+        class StanzaBuia(Stanza):
+            equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haIlluminazione < 200.0))]
+        class StanzaLuminosissima(Stanza):
+            equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haIlluminazione > 800.0))]
+
+        # Profili stanza combinati
+        class StanzaDaRiscaldare(Stanza):
+            equivalent_to = [StanzaFredda & haPresenza.some(Persona)]
+        class StanzaDaSpegnereLuce(Stanza):
+            equivalent_to = [StanzaBuia & ~haPresenza.some(Persona)]
+        class StanzaEnergiaAlta(Stanza):
+            equivalent_to = [Stanza & haDispositivo.some(Luce | Riscaldamento | Climatizzatore)]
+
+    # --- SALVA L'ONTOLOGIA ---
     onto.save(file=output_path, format="rdfxml")
-    relative_path = os.path.relpath(output_path, os.getcwd())
-    print(f" Ontologia salvata in '{relative_path}'.")
+    print(f"✅ Ontologia salvata in '{os.path.relpath(output_path)}'")
+
+    # --- ESEGUI REASONER ---
+    print("Avvio reasoner Pellet per inferenze...")
+    sync_reasoner_pellet(infer_property_values=True)
+    print("Reasoning completato.")
+
+    # --- Stampa stanze con profili dedotti ---
+    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaDaSpegnereLuce, StanzaEnergiaAlta]:
+        instances = list(cls.instances())
+        if instances:
+            print(f"\nClassi dedotte '{cls.__name__}':")
+            for s in instances:
+                print(f"- {s.name}")
 
 if __name__ == "__main__":
     main()
