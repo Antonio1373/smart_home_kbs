@@ -1,4 +1,3 @@
-# ontologia.py - Ontologia SmartHome con reasoner più intelligente
 from owlready2 import *
 import os
 
@@ -77,22 +76,20 @@ def main():
         # Profili stanza combinati
         class StanzaDaRiscaldare(Stanza):
             equivalent_to = [StanzaFredda & haPresenza.some(Persona)]
-        class StanzaDaSpegnereLuce(Stanza):
-            equivalent_to = [StanzaBuia & ~haPresenza.some(Persona)]
+
         class StanzaEnergiaAlta(Stanza):
             equivalent_to = [Stanza & haDispositivo.some(Luce | Riscaldamento | Climatizzatore)]
 
-    # --- SALVA L'ONTOLOGIA ---
     onto.save(file=output_path, format="rdfxml")
-    print(f"✅ Ontologia salvata in '{os.path.relpath(output_path)}'")
+    print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
 
     # --- ESEGUI REASONER ---
-    print("Avvio reasoner Pellet per inferenze...")
-    sync_reasoner_pellet(infer_property_values=True)
+    print("\nAvvio reasoner Pellet per inferenze...")
+    sync_reasoner_pellet(infer_property_values=True, debug=0)
     print("Reasoning completato.")
 
     # --- Stampa stanze con profili dedotti ---
-    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaDaSpegnereLuce, StanzaEnergiaAlta]:
+    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta]:
         instances = list(cls.instances())
         if instances:
             print(f"\nClassi dedotte '{cls.__name__}':")

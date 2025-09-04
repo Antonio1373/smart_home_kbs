@@ -14,6 +14,12 @@ def main():
     output_path = os.path.join(base_dir, OUTPUT_FILE)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+    if not os.path.exists(ont_path):
+        print(f"ERRORE : File ontologia non trovato: {os.path.relpath(ont_path)}")
+        return
+
+    print(f"Caricamento ontologia da: {os.path.relpath(ont_path)}")
+
     onto = get_ontology(ont_path).load()
     dataset = []
     idx = 0
@@ -52,7 +58,7 @@ def main():
 
     df = pd.DataFrame(dataset)
     df.to_csv(output_path, index=False)
-    print(f"✅ Dataset generato in '{os.path.relpath(output_path)}' ({len(df)} righe)")
+    print(f"Dataset generato in '{os.path.relpath(output_path)}' ({len(df)} righe).")
 
 if __name__ == "__main__":
     main()

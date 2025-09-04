@@ -1,4 +1,3 @@
-# genera_istanze.py - Versione aggiornata per ontologia SmartHome con reasoner intelligente
 from owlready2 import *
 import uuid
 import os
@@ -28,7 +27,6 @@ UMIDITA_STD = 10
 # Probabilità di valori estremi intenzionali (per test reasoner)
 PROB_VALORI_ESTREMI = 0.35
 
-# ----------------- FUNZIONE PRINCIPALE -----------------
 def main():
     print("Generazione istanze SmartHome avanzata...")
 
@@ -37,10 +35,9 @@ def main():
     output_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
 
     if not os.path.exists(ont_path):
-        print(f"Errore: file ontologia non trovato: '{os.path.relpath(ont_path)}'")
+        print(f"ERRORE: file ontologia non trovato: '{os.path.relpath(ont_path)}', esegui il punto 1.")
         return
 
-    # Carica ontologia esistente
     onto = get_ontology(ont_path).load()
 
     case = []
@@ -115,29 +112,17 @@ def main():
                 stanza.haStato.append(stato)
         
     # ----------------- ESECUZIONE REASONER -----------------
-    print("\n🔹 Esecuzione reasoner per inferenze sulle stanze...")
+    print("\nEsecuzione reasoner per inferenze sulle stanze...")
     try:
-        sync_reasoner_pellet(infer_property_values=True)  # Pellete più affidabile con valori numerici
-        print("✅ Reasoner completato: stanze fredde, calde, buie e luminosissime inferite.")
+        sync_reasoner_pellet(infer_property_values=True, debug=0)  # Pellete più affidabile con valori numerici
+        print("Reasoner completato: stanze fredde, calde, buie e luminosissime inferite.")
     except Exception as e:
-        print(f"⚠ Errore nel reasoner: {e}")
+        print(f"ATTENZIONE : Errore nel reasoner: {e}")
 
-    # ----------------- STAMPA CLASSI DERIVATE -----------------
-    for cls in [onto.StanzaCalda, onto.StanzaFredda, onto.StanzaBuia, onto.StanzaLuminosissima,
-            onto.StanzaDaRiscaldare, onto.StanzaDaSpegnereLuce, onto.StanzaEnergiaAlta]:
-        instances = list(cls.instances())
-        print(f"\nClassi dedotte '{cls.__name__}': {len(instances)} istanze")
-        for s in instances:
-            print(f"- {s.name}")
-
-
-
-    # ----------------- SALVATAGGIO ONTOLOGIA -----------------
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     onto.save(file=output_path, format="rdfxml")
-    print(f"✅ Ontologia popolata salvata in '{os.path.relpath(output_path)}'")
-    print(f"Totale case generate: {NUM_CASE}, stanze: {NUM_CASE * len(STANZE_PER_CASA)}, persone: {NUM_CASE * PERSONE_PER_CASA}")
+    print(f"Ontologia popolata salvata in '{os.path.relpath(output_path)}'.")
+    print(f"Totale case generate: {NUM_CASE}, stanze: {NUM_CASE * len(STANZE_PER_CASA)}, persone: {NUM_CASE * PERSONE_PER_CASA}.")
 
-# ----------------- ENTRY POINT -----------------
 if __name__ == "__main__":
     main()

@@ -23,10 +23,10 @@ def chiedi_modello():
 
 def carica_dati(file_path):
     if not os.path.exists(file_path):
-        print(f"File '{os.path.relpath(file_path)}' non trovato.")
+        print(f"ERRORE : File Dataset '{os.path.relpath(file_path)}' non trovato.")
         return None
     df = pd.read_csv(file_path)
-    print(f"✅ Dataset caricato: {len(df)} righe")
+    print(f"Dataset caricato: {len(df)} righe.")
     return df
 
 def prepara_dati(df, features, target):
@@ -47,7 +47,7 @@ def salva_modello(model, base_dir, model_name):
     path_named = os.path.join(base_dir, "data", f"modello_{model_name}.joblib")
     dump(model, path_generic)
     dump(model, path_named)
-    print(f"✅ Modello salvato in: {os.path.relpath(path_generic)} e {os.path.relpath(path_named)}")
+    print(f"Modello salvato in: {os.path.relpath(path_generic)} e {os.path.relpath(path_named)}.")
 
 # ---------------- MAIN ----------------
 def main():
@@ -70,14 +70,14 @@ def main():
     X, y = prepara_dati(df, features, target)
 
     if len(np.unique(y)) < 2:
-        print("⚠ Il target 'occupazione' ha una sola classe nel dataset.")
+        print("ERRORE : Il target 'occupazione' ha una sola classe nel dataset.")
         return
 
-    print(f"\n🔹 Valutazione {model_name} con 5-fold CV (F1 score)...")
+    print(f"\n Valutazione {model_name} con 5-fold CV (F1 score)...")
     scores = valuta_cv(model_instance, X, y)
     print(f" F1 mean: {scores.mean():.4f}  std: {scores.std():.4f}")
 
-    print("\n🔹 Addestramento modello finale su tutto il dataset...")
+    print("\n Addestramento modello finale su tutto il dataset...")
     model_instance.fit(X, y)
     salva_modello(model_instance, base_dir, model_name)
 
@@ -86,7 +86,7 @@ def main():
         for f, imp in zip(features, model_instance.feature_importances_):
             print(f" - {f}: {imp:.4f}")
 
-    print("\n✅ Operazione completata.")
+    print("\n Operazione completata.")
 
 if __name__ == "__main__":
     main()

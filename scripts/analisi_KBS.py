@@ -1,41 +1,36 @@
-# analisi_KBS_reasoning.py - Analisi SmartHome KBS basata su reasoning + regole.py
 import os
 import pandas as pd
 from owlready2 import *
-from regole import azioni_da_regole  # <-- importa le tue regole già scritte
+from regole import azioni_da_regole
 
 def main():
     print("Analisi SmartHome KBS basata sul reasoning...")
 
-    # --- Percorsi ---
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     ont_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
     csv_path = os.path.join(base_dir, "data", "SmartHome.csv")
     report_path = os.path.join(base_dir, "data", "report_KBS_reasoning.csv")
 
     if not os.path.exists(ont_path):
-        raise FileNotFoundError(f"Ontologia non trovata: {ont_path}")
+        print (f"ERRORE : Ontologia non trovata: {os.path.relpath(ont_path)}.")
     if not os.path.exists(csv_path):
-        raise FileNotFoundError(f"Dataset non trovato: {csv_path}")
+        print(f"ERRORE : Dataset non trovato: {os.path.relpath(csv_path)}.")
+        return
 
-    # --- Carica ontologia ---
     onto = get_ontology(ont_path).load()
-    print(f"✅ Ontologia caricata: {len(list(onto.classes()))} classi, {len(list(onto.individuals()))} individui")
+    print(f"Ontologia caricata: {len(list(onto.classes()))} classi, {len(list(onto.individuals()))} individui.")
 
-    # --- Esegui reasoning ---
-    print("\n🔹 Esecuzione reasoner...")
+    print("\nEsecuzione reasoner...")
     with onto:
-        sync_reasoner(infer_property_values=True)
-    print("✅ Reasoner completato")
+        sync_reasoner(infer_property_values=True, debug=0)
+    print("Reasoner completato.")
 
-    # --- Carica dataset (opzionale) ---
     df = pd.read_csv(csv_path)
-    print(f"✅ Dataset caricato: {len(df)} righe")
+    print(f"Dataset caricato: {len(df)} righe.")
 
-    # ----------------- Stanze inferite dal reasoner -----------------
+    # Stanze inferite dal reasoner
     stanze_cat = {
         "StanzaDaRiscaldare": list(onto.StanzaDaRiscaldare.instances()),
-        "StanzaDaSpegnereLuce": list(onto.StanzaDaSpegnereLuce.instances()),
         "StanzaEnergiaAlta": list(onto.StanzaEnergiaAlta.instances()),
         "StanzaLuminosissima": list(onto.StanzaLuminosissima.instances())
     }
@@ -45,15 +40,12 @@ def main():
         if stanze:
             for s in stanze:
                 stato = s.haStato[0] if s.haStato else None
-                temp = stato.haTemperatura if stato else "N/A"
-                lux = stato.haIlluminazione if stato else "N/A"
-                occ = stato.haOccupazione if stato else "N/A"
-                print(f"- {s.name}: temp={temp}, lux={lux}, occupazione={occ}")
+                print(f"- {s.name}.")
         else:
             print("Nessuna stanza inferita.")
 
-    # ----------------- Azioni suggerite usando regole.py -----------------
-    print("\n--- Azioni suggerite per le stanze ---")
+    # Azioni suggerite usando regole.py
+    print("\nAzioni suggerite per le stanze.")
     azioni_per_stanza = {}
     for s in onto.Stanza.instances():
         stato = s.haStato[0] if s.haStato else None
@@ -61,19 +53,19 @@ def main():
             acts = azioni_da_regole(stato.haIlluminazione, stato.haTemperatura, stato.haOccupazione)
             if acts:
                 azioni_per_stanza[s.name] = acts
-                print(f"- {s.name}: {acts}")
+                print("Completato.")
 
-    # --- Totale azioni per tipo ---
+
+    # Totale azioni per tipo
     azioni_totali = {}
     for acts in azioni_per_stanza.values():
         for a in acts:
             azioni_totali[a] = azioni_totali.get(a, 0) + 1
 
-    print("\n--- Totale azioni generate per tipo ---")
+    print("\nTotale azioni generate per tipo...")
     for az, count in azioni_totali.items():
         print(f"{az}: {count}")
 
-    # --- Salvataggio report aggregato ---
     report_data = []
     for stanza, acts in azioni_per_stanza.items():
         for az in acts:
@@ -81,8 +73,7 @@ def main():
     df_report = pd.DataFrame(report_data)
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     df_report.to_csv(report_path, index=False)
-    print(f"\n✅ Report aggregato salvato in '{os.path.relpath(report_path)}'")
-    print("\n✅ Analisi completata secondo linee guida del progetto.")
+    print(f"\nReport aggregato salvato in '{os.path.relpath(report_path)}'.")
 
 if __name__ == "__main__":
     main()

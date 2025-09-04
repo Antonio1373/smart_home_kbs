@@ -1,9 +1,3 @@
-"""
-applica_regole.py - Applicazione delle regole SmartHome
-Obiettivo: usare le regole Python per generare azioni automatiche
-           sulle istanze della KB SmartHome popolata.
-"""
-
 from owlready2 import *
 import os
 from regole import azioni_da_regole
@@ -13,10 +7,9 @@ def main():
     kb_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
 
     if not os.path.exists(kb_path):
-        print(f"Errore: file ontologia non trovato: '{kb_path}'")
+        print(f"ERRORE : file ontologia non trovato: '{os.path.relpath(kb_path)}'")
         return
 
-    # Carica KB
     onto = get_ontology(kb_path).load()
 
     # --- Mappatura azione -> classe KB ---
@@ -73,10 +66,9 @@ def main():
                 # Collega azione allo stato ambientale come suggerimento
                 stato.suggerisceAzione.append(azione_istanza)
 
-    # Salva KB aggiornata
     output_path = os.path.join(base_dir, "ontology", "smarthome_con_azioni.owl")
     onto.save(file=output_path, format="rdfxml")
-    print(f"✅ Azioni applicate e KB salvata in '{os.path.relpath(output_path)}'")
+    print(f"Azioni applicate e KB salvata in '{os.path.relpath(output_path)}'.")
 
 if __name__ == "__main__":
     main()
