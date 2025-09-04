@@ -72,6 +72,8 @@ def main():
             equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haIlluminazione < 200.0))]
         class StanzaLuminosissima(Stanza):
             equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haIlluminazione > 800.0))]
+        class StanzaDispendiosa(Stanza):
+            equivalent_to = [Stanza & haDispositivo.some(Dispositivo & (haConsumo > 1.5))]
 
         # Profili stanza combinati
         class StanzaDaRiscaldare(Stanza):
@@ -79,6 +81,12 @@ def main():
 
         class StanzaEnergiaAlta(Stanza):
             equivalent_to = [Stanza & haDispositivo.some(Luce | Riscaldamento | Climatizzatore)]
+
+        class StanzaDaClimatizzare(Stanza):
+            equivalent_to = [StanzaCalda & haPresenza.some(Persona)]
+
+        class CasaAltaOccupazione(Casa):
+            equivalent_to = [Casa & haStanza.some(Stanza & haPresenza.min(2, Persona))]
 
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
