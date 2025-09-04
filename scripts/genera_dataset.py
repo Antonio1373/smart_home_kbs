@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from owlready2 import get_ontology
+from owlready2 import get_ontology, sync_reasoner
 
 # ---------------- CONFIGURAZIONE ----------------
 ONTO_FILE = "ontology/smarthome_popolata.owl"
@@ -21,6 +21,10 @@ def main():
     print(f"Caricamento ontologia da: {os.path.relpath(ont_path)}")
 
     onto = get_ontology(ont_path).load()
+    print("Esecuzione reasoner per calcolare le classi inferite...")
+    with onto:
+        sync_reasoner(infer_property_values=True, debug=0)
+    print("Reasoner completato.")
     dataset = []
     idx = 0
 
@@ -41,6 +45,13 @@ def main():
                     consumo_climatizzatore = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Climatizzatore"),2)
                     consumo_tapparella = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Tapparella"),2)
 
+                    inferenze = {
+                        "is_fredda": int(stanza in onto.StanzaFredda.instances()),
+                        "is_calda": int(stanza in onto.StanzaCalda.instances()),
+                        "is_buia": int(stanza in onto.StanzaBuia.instances()),
+                        "is_luminosa": int(stanza in onto.StanzaLuminosissima.instances()),
+                    }
+
                     dataset.append({
                         "id": idx,
                         "casa": casa.name,
@@ -52,7 +63,8 @@ def main():
                         "consumo_luce_kW": consumo_luce,
                         "consumo_riscaldamento_kW": consumo_riscaldamento,
                         "consumo_climatizzatore_kW": consumo_climatizzatore,
-                        "consumo_tapparella_kW": consumo_tapparella
+                        "consumo_tapparella_kW": consumo_tapparella,
+                        **inferenze
                     })
                     idx += 1
 

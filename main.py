@@ -18,7 +18,6 @@ FILES_DA_ELIMINARE = [
     "ontology/smarthome.owl",
     "ontology/smarthome_popolata.owl",
     "ontology/smarthome_con_azioni.owl",
-    "data/report_verifica_coerenza.csv",
     "data/modello_RandomForest.joblib",
     "data/modello_LogisticRegression.joblib",
     "data/modello_SVM.joblib",
