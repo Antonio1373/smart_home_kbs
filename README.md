@@ -1,35 +1,57 @@
 🏠 Smart Home Ibrido (ML + KB)
 
 Progetto per il corso di Intelligenza Conoscitiva (ICon) – A.A. 2024/2025
+
 Autore: Antonio Granato
 
-📌 Descrizione del progetto
+📌 Obiettivo del progetto
 
-Il progetto implementa un sistema intelligente per automazione domestica (Smart Home), capace di suggerire azioni (es. accendere luci, climatizzatori, alzare tapparelle) sulla base di:
+Il progetto realizza un sistema Smart Home in grado di:
 
-Condizioni ambientali: temperatura, luce, umidità, consumo energetico.
+Suggerire azioni automatiche su dispositivi domestici (luci, riscaldamento, climatizzatore, tapparelle).
 
-Presenza di persone (occupancy): stimata manualmente o tramite ML.
+Considerare stato ambientale (temperatura, luce, umidità, consumo) e occupancy.
 
-Sono stati sviluppati e confrontati tre approcci:
+Integrare due approcci:
 
-Knowledge-Based (KB): ragionamento simbolico tramite ontologia OWL e regole condizionali.
+KB (Knowledge-Based): ontologia OWL + reasoning Pellet + regole Python.
 
-Machine Learning (ML): classificazione supervisionata (Random Forest, Logistic Regression, SVM).
+ML (Machine Learning): RandomForest, LogisticRegression e SVM per predizione occupazione.
 
-Sistema Ibrido: integrazione tra ML e KB con diverse strategie di fusione.
+Produrre un sistema ibrido che combina inferenze della KB con predizioni ML.
+
+🔑 Funzionalità principali
+Script	Funzione
+
+ontologia.py	Definizione della KB: classi, proprietà, sottoclassi derivate per il reasoning.
+
+genera_istanze.py	Popolamento della KB con case, stanze, dispositivi, persone e stati ambientali.
+
+regole.py	Regole Python per decidere azioni automatiche sui dispositivi.
+
+genera_dataset.py	Generazione di dataset CSV dalla KB per addestramento ML.
+
+applica_regole.py	Applicazione delle regole Python per creare istanze Azione nella KB.
+
+predizione_occupazione.py	Addestramento e valutazione modelli ML per predire la presenza di persone.
+
+analisi_KBS.py	Analisi delle stanze inferite dal reasoner e aggregazione delle azioni suggerite.
+
+main.py	Menu principale per eseguire tutti gli script in sequenza.
 
 🛠 Tecnologie utilizzate
 
 Python 3.x
 
-pandas – gestione e analisi dati
+pandas – gestione dataset
 
-scikit-learn – Machine Learning
+scikit-learn – modelli ML
 
-OWLready2 – modellazione e gestione dell’ontologia
+OWLready2 – gestione ontologia e reasoner Pellet
 
-matplotlib – grafici di analisi e valutazione
+joblib – salvataggio dei modelli ML
+
+uuid, random, os – generazione di dati e gestione filesystem
 
 ▶ Come eseguire il sistema
 
@@ -43,7 +65,21 @@ Spostarsi nella root del progetto e avviare il sistema con il comando:
     python main.py
 
 
-Questo mostrerà un menu numerato con tutte le opzioni (analisi dati, creazione ontologia, addestramento ML, valutazione, ecc.).
+Questo mostrerà un menu numerato con tutte le opzioni.
+
+Seguire le opzioni numerate per:
+
+1) Creare ontologia
+
+2) Generare istanze
+
+3) Creare dataset
+
+4) Applicare regole
+
+5) Addestrare ML
+
+6) Analizzare KB
 
 ⚠ Importante: Avvia il progetto sempre da main.py. I singoli script sono pensati solo per test o sviluppo.
 
