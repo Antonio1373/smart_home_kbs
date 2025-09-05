@@ -1,5 +1,4 @@
 from owlready2 import *
-from owlready2 import get_namespace
 import os
 
 def main():
@@ -11,7 +10,7 @@ def main():
     output_path = os.path.join(output_dir, "smarthome.owl")
 
     onto = get_ontology("http://example.org/ontology/smarthome.owl")
-    swrlb = onto.get_namespace("http://www.w3.org/2003/11/swrlb#")
+
 
     with onto:
         # --- CLASSI BASE ---
