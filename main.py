@@ -13,15 +13,18 @@ MENU = {
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "scripts")
 
 FILES_DA_ELIMINARE = [
-    "data/SmartHome.csv",
+    "data/SmartHome_base.csv",
+    "data/SmartHome_KB_enhanced.csv",
     "data/report_KBS_reasoning.csv",
     "ontology/smarthome.owl",
     "ontology/smarthome_popolata.owl",
     "ontology/smarthome_con_azioni.owl",
-    "data/modello_RandomForest.joblib",
-    "data/modello_LogisticRegression.joblib",
-    "data/modello_SVM.joblib",
-    "data/modello.joblib"
+    "data/Base_RandomForest.joblib",
+    "data/Base_LogisticRegression.joblib",
+    "data/Base_SVM.joblib",
+    "data/KB_RandomForest.joblib",
+    "data/KB_LogisticRegression.joblib",
+    "data/KB_SVM.joblib"
 ]
 
 print(" Pulizia iniziale dei file generati...")

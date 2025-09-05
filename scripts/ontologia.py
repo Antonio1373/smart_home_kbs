@@ -1,4 +1,5 @@
 from owlready2 import *
+from owlready2 import get_namespace
 import os
 
 def main():
@@ -10,6 +11,7 @@ def main():
     output_path = os.path.join(output_dir, "smarthome.owl")
 
     onto = get_ontology("http://example.org/ontology/smarthome.owl")
+    swrlb = onto.get_namespace("http://www.w3.org/2003/11/swrlb#")
 
     with onto:
         # --- CLASSI BASE ---
@@ -45,13 +47,19 @@ def main():
         class AlzaTapparelle(Azione): pass
         class AbbassaTapparelle(Azione): pass
 
+        # --- CONCETTI TEMPORALI ---
+        class Orario(Thing): pass
+        class Giorno(Orario): pass
+        class Notte(Orario): pass
+        class FasciaEnergeticaAlta(Orario): pass
+        class FasciaEnergeticaBassa(Orario): pass
+
         # --- PROPRIETÀ DATI ---
         class haConsumo(Dispositivo >> float, DataProperty, FunctionalProperty): pass
         class haTemperatura(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haIlluminazione(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haOccupazione(StatoAmbientale >> bool, DataProperty, FunctionalProperty): pass
         class haUmidita(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
-        class haOrario(StatoAmbientale >> str, DataProperty): pass
 
         # --- PROPRIETÀ OGGETTO ---
         class haStanza(Casa >> Stanza, ObjectProperty): pass
@@ -61,6 +69,8 @@ def main():
         class haPresenza(Stanza >> Persona, ObjectProperty): pass
         class suggerisceAzione(StatoAmbientale >> Azione, ObjectProperty): pass
         class controllaDispositivo(Azione >> Dispositivo, ObjectProperty): pass
+        class haOrario(Stanza >> Orario, ObjectProperty): pass
+        class confinaCon(Stanza >> Stanza, SymmetricProperty): pass  
 
         # --- CLASSI DERIVATE PER REASONING ---
         # Stato stanza
@@ -88,6 +98,12 @@ def main():
         class CasaAltaOccupazione(Casa):
             equivalent_to = [Casa & haStanza.some(Stanza & haPresenza.min(2, Persona))]
 
+        class StanzaBuiaNotteOccupata(Stanza):
+            equivalent_to = [StanzaBuia & haPresenza.some(Persona) & haOrario.some(Notte)]
+
+        class StanzaFreddaEBuiaOccupata(Stanza):
+            equivalent_to = [StanzaFredda & StanzaBuia & haPresenza.some(Persona)]
+
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
 
@@ -97,7 +113,7 @@ def main():
     print("Reasoning completato.")
 
     # --- Stampa stanze con profili dedotti ---
-    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta]:
+    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaFreddaEBuiaOccupata, StanzaBuiaNotteOccupata, CasaAltaOccupazione, StanzaDaClimatizzare]:
         instances = list(cls.instances())
         if instances:
             print(f"\nClassi dedotte '{cls.__name__}':")
