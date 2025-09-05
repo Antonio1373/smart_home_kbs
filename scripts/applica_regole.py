@@ -24,51 +24,43 @@ def main():
         "AbbassaTapparelle": onto.AbbassaTapparelle
     }
 
-    # Per ogni casa e stanza
+    print("\nApplicazione regole Python e confronto con inferenze reasoner...\n")
+
     for casa in onto.Casa.instances():
         for stanza in casa.haStanza:
-            # Applica regole solo se esiste almeno uno stato ambientale
             if not stanza.haStato:
                 continue
-            stato = stanza.haStato[0]  # Consideriamo lo stato corrente
+            stato = stanza.haStato[0]
 
             temp = stato.haTemperatura
             light = stato.haIlluminazione
             occupazione = stato.haOccupazione
 
-            # Ottieni azioni suggerite dalle regole Python
-            azioni = azioni_da_regole(light, temp, occupazione)
+            # --- Azioni dalle regole Python ---
+            azioni_python = azioni_da_regole(light, temp, occupazione)
 
-            # Crea istanze Azione nella KB e collega ai dispositivi
-            for az in azioni:
-                azione_nome = f"{az}_{stanza.name}"
-                AzClasse = azione_to_classe.get(az.replace(" ", ""))
-                if AzClasse is None:
-                    # crea sottoclasse dinamica generica se non esiste
-                    AzClasse = type(f"Azione_{az}_{stanza.name}", (onto.Azione,), {})
+            # --- Azioni già presenti in KB (prima) ---
+            azioni_kb_before = [a.__class__.__name__ for a in stato.suggerisceAzione]
 
-                azione_istanza = AzClasse(azione_nome)
+            # --- Log confronto prima ---
+            print(f"\nStanza: {stanza.name}")
+            print(f" - Azioni Python: {azioni_python}")
+            print(f" - Azioni KB: {azioni_kb_before}")
 
-                # Collega azione ai dispositivi pertinenti
-                if "Luce" in az:
-                    for disp in [d for d in stanza.haDispositivo if isinstance(d, onto.Luce)]:
-                        azione_istanza.controllaDispositivo.append(disp)
-                elif "Riscaldamento" in az:
-                    for disp in [d for d in stanza.haDispositivo if isinstance(d, onto.Riscaldamento)]:
-                        azione_istanza.controllaDispositivo.append(disp)
-                elif "Climatizzatore" in az:
-                    for disp in [d for d in stanza.haDispositivo if isinstance(d, onto.Climatizzatore)]:
-                        azione_istanza.controllaDispositivo.append(disp)
-                elif "Tapparella" in az:
-                    for disp in [d for d in stanza.haDispositivo if isinstance(d, onto.Tapparella)]:
-                        azione_istanza.controllaDispositivo.append(disp)
+            # confronto
+            azioni_kb_clean = [a.replace("Azione_", "").split("_")[0].replace(" ", "").lower() for a in azioni_kb_before]
+            azioni_python_clean = [a.replace(" ", "").lower() for a in azioni_python]
 
-                # Collega azione allo stato ambientale come suggerimento
-                stato.suggerisceAzione.append(azione_istanza)
+            differenze = set(azioni_python_clean) ^ set(azioni_kb_clean)
+            if differenze:
+                print(f"Differenze tra Python e KB: {differenze}")
+            else:
+                print("Azioni coerenti tra Python e KB.")
+
 
     output_path = os.path.join(base_dir, "ontology", "smarthome_con_azioni.owl")
     onto.save(file=output_path, format="rdfxml")
-    print(f"Azioni applicate e KB salvata in '{os.path.relpath(output_path)}'.")
+    print(f"\nAzioni applicate e KB salvata in '{os.path.relpath(output_path)}'.")
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,8 @@
-from owlready2 import *
-import uuid
 import os
+import uuid
 import random
+from owlready2 import *
+from regole import azioni_da_regole
 
 # ----------------- PARAMETRI DI PROGETTO -----------------
 NUM_CASE = 50                   # Numero di case simulate
@@ -17,15 +18,16 @@ CONSUMO_DISPOSITIVI = {
 }
 
 # Parametri per stato ambientale
-TEMPERATURA_MEDIA = 22
-TEMPERATURA_STD = 2
-ILLUMINAZIONE_MEDIA = 400
-ILLUMINAZIONE_STD = 150
-UMIDITA_MEDIA = 45
-UMIDITA_STD = 10
+TEMPERATURE_RANGE = [(15, 18), (19, 22), (23, 27), (28, 32)]  # fredda, normale, calda, molto calda
+LUCE_RANGE = [(0, 100), (101, 300), (301, 600), (601, 900)]   # buia, medio-bassa, normale, molto luminosa
+UMIDITA_RANGE = [(20, 35), (36, 55), (56, 70)]                # secca, normale, umida
 
-# Probabilità di valori estremi intenzionali (per test reasoner)
 PROB_VALORI_ESTREMI = 0.35
+
+def genera_valore_con_range(ranges):
+    """Sceglie casualmente un range e genera un valore uniforme al suo interno"""
+    r = random.choice(ranges)
+    return round(random.uniform(r[0], r[1]), 1)
 
 def main():
     print("Generazione istanze SmartHome avanzata...")
@@ -35,12 +37,24 @@ def main():
     output_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
 
     if not os.path.exists(ont_path):
-        print(f"ERRORE: file ontologia non trovato: '{os.path.relpath(ont_path)}', esegui il punto 1.")
+        print(f"ERRORE: file ontologia non trovato: '{os.path.relpath(ont_path)}'")
         return
 
     onto = get_ontology(ont_path).load()
-
     case = []
+
+    # Mappatura azione -> classe ontologia
+    azione_to_classe = {
+        "AccendiLuce": onto.AccendiLuce,
+        "SpegniLuce": onto.SpegniLuce,
+        "AccendiRiscaldamento": onto.AccendiRiscaldamento,
+        "SpegniRiscaldamento": onto.SpegniRiscaldamento,
+        "AccendiClimatizzatore": onto.AccendiClimatizzatore,
+        "SpegniClimatizzatore": onto.SpegniClimatizzatore,
+        "AlzaTapparelle": onto.AlzaTapparelle,
+        "AbbassaTapparelle": onto.AbbassaTapparelle
+    }
+
     with onto:
         # ----------------- CREAZIONE CASE E STANZE -----------------
         for c in range(1, NUM_CASE + 1):
@@ -54,7 +68,7 @@ def main():
                 stanze.append(stanza)
             casa.haStanza.extend(stanze)
 
-        # ----------------- CREAZIONE DISPOSITIVI E SENSORI -----------------
+        # ----------------- CREAZIONE DISPOSITIVI E PERSONE -----------------
         for casa in case:
             for stanza in casa.haStanza:
                 # Sensori
@@ -71,7 +85,7 @@ def main():
                 ]
                 stanza.haDispositivo.extend(dispositivi)
 
-                # Consumo realistico dei dispositivi
+                # Consumi realistici
                 for disp in stanza.haDispositivo:
                     if isinstance(disp, onto.Luce):
                         low, high = CONSUMO_DISPOSITIVI["Luce"]
@@ -83,42 +97,70 @@ def main():
                         low, high = CONSUMO_DISPOSITIVI["Tapparella"]
                     disp.haConsumo = round(random.uniform(low, high), 2)
 
-        # ----------------- CREAZIONE PERSONE -----------------
-        for idx, casa in enumerate(case, start=1):
+            # Persone
             for p in range(1, PERSONE_PER_CASA + 1):
-                persona = onto.Persona(f"Persona_C{idx}_{p}")
+                persona = onto.Persona(f"Persona_C{c}_{p}")
                 stanza = random.choice(casa.haStanza)
                 stanza.haPresenza.append(persona)
 
-        # ----------------- STATO AMBIENTALE -----------------
+        # ----------------- STATO AMBIENTALE E AZIONI -----------------
         for casa in case:
             for stanza in casa.haStanza:
                 stato = onto.StatoAmbientale(f"Stato_{stanza.name}_{uuid.uuid4().hex[:6]}")
-        
-                # Generazione valori realistici
-                stato.haTemperatura = round(random.gauss(TEMPERATURA_MEDIA, TEMPERATURA_STD), 1)
-                stato.haIlluminazione = round(random.gauss(ILLUMINAZIONE_MEDIA, ILLUMINAZIONE_STD), 1)
-                stato.haUmidita = round(random.gauss(UMIDITA_MEDIA, UMIDITA_STD), 1)
+
+                # Orario casuale
+                orario_cls = random.choice([onto.Giorno, onto.Notte])
+                orario_istanza = orario_cls(f"Orario_{orario_cls.__name__}_{stanza.name}_{uuid.uuid4().hex[:4]}")
+                stanza.haOrario.append(orario_istanza)
+
+                # Valori ambiente
+                stato.haTemperatura = genera_valore_con_range(TEMPERATURE_RANGE)
+                stato.haIlluminazione = genera_valore_con_range(LUCE_RANGE)
+                stato.haUmidita = genera_valore_con_range(UMIDITA_RANGE)
                 stato.haOccupazione = bool(stanza.haPresenza)
-
-                # Introduci casi estremi intenzionali
-                if random.random() < PROB_VALORI_ESTREMI:
-                    ext_temp = [17.0, 29.0]
-                    stato.haTemperatura = ext_temp[(c + len(stanza.name)) % 2]
-
-                    ext_light = [50.0, 850.0]
-                    stato.haIlluminazione = ext_light[(c + len(stanza.name)) % 2]
-
                 stanza.haStato.append(stato)
-        
-    # ----------------- ESECUZIONE REASONER -----------------
-    print("\nEsecuzione reasoner per inferenze sulle stanze...")
-    try:
-        sync_reasoner_pellet(infer_property_values=True, debug=0)  # Pellete più affidabile con valori numerici
-        print("Reasoner completato: stanze fredde, calde, buie e luminosissime inferite.")
-    except Exception as e:
-        print(f"ATTENZIONE : Errore nel reasoner: {e}")
 
+                # Valori estremi occasionali
+                if random.random() < PROB_VALORI_ESTREMI:
+                    stato.haTemperatura = random.choice([15.0, 32.0])
+                    stato.haIlluminazione = random.choice([0.0, 900.0])
+
+                # --- Azioni suggerite ---
+                azioni_python = azioni_da_regole(
+                    stato.haIlluminazione,
+                    stato.haTemperatura,
+                    stato.haOccupazione,
+                    orario_istanza
+                )
+
+                for az in azioni_python:
+                    azione_nome = f"{az}_{stanza.name}"
+                    AzClasse = azione_to_classe.get(az.replace(" ", ""))
+                    if AzClasse is None:
+                        AzClasse = type(f"Azione_{az}_{stanza.name}", (onto.Azione,), {})
+                    azione_istanza = AzClasse(azione_nome)
+
+                    # Collega al dispositivo corretto
+                    if "Luce" in az:
+                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Luce)])
+                    elif "Riscaldamento" in az:
+                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Riscaldamento)])
+                    elif "Climatizzatore" in az:
+                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Climatizzatore)])
+                    elif "Tapparella" in az:
+                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Tapparella)])
+
+                    stato.suggerisceAzione.append(azione_istanza)
+
+        # ----------------- ESECUZIONE REASONER -----------------
+        print("\nEsecuzione reasoner per inferenze sulle stanze...")
+        try:
+            sync_reasoner_pellet(infer_property_values=True, debug=0)
+            print("Reasoner completato: inferenze eseguite su stanze e orari.")
+        except Exception as e:
+            print(f"ATTENZIONE: Errore nel reasoner: {e}")
+
+    # ----------------- SALVATAGGIO ONTOLOGIA -----------------
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia popolata salvata in '{os.path.relpath(output_path)}'.")

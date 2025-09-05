@@ -1,18 +1,19 @@
 import os
+import random
 import pandas as pd
 from owlready2 import get_ontology, sync_reasoner
 
 # ---------------- CONFIGURAZIONE ----------------
 ONTO_FILE = "ontology/smarthome_popolata.owl"
-OUTPUT_FILE = "data/SmartHome.csv"
+OUTPUT_DIR = "data"
 RIGHE_PER_STANZA = 1  # Numero di campioni per stanza
 # ------------------------------------------------
 
 def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     ont_path = os.path.join(base_dir, ONTO_FILE)
-    output_path = os.path.join(base_dir, OUTPUT_FILE)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_dir = os.path.join(base_dir, OUTPUT_DIR)
+    os.makedirs(output_dir, exist_ok=True)
 
     if not os.path.exists(ont_path):
         print(f"ERRORE : File ontologia non trovato: {os.path.relpath(ont_path)}")
@@ -25,7 +26,9 @@ def main():
     with onto:
         sync_reasoner(infer_property_values=True, debug=0)
     print("Reasoner completato.")
-    dataset = []
+    
+    dataset_base = []
+    dataset_enhanced = []
     idx = 0
 
     for casa in onto.Casa.instances():
@@ -33,29 +36,25 @@ def main():
             for stato in stanza.haStato:
                 for _ in range(RIGHE_PER_STANZA):
                     occupazione = 1 if len(stanza.haPresenza) > 0 else 0
+                    ora_giorno = random.randint(0, 23)  # Orario simulato
 
-                    # Valori già presenti nella KB
+                    # Valori grezzi dalla KB
                     temperatura = getattr(stato, "haTemperatura", 22)
                     illuminazione = getattr(stato, "haIlluminazione", 400)
                     umidita = getattr(stato, "haUmidita", 45)
 
-                    # Consumi basati sull’occupazione
-                    consumo_luce = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Luce"),2)
-                    consumo_riscaldamento = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Riscaldamento"),2)
-                    consumo_climatizzatore = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Climatizzatore"),2)
-                    consumo_tapparella = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Tapparella"),2)
+                    # Consumi dei dispositivi
+                    consumo_luce = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Luce"), 2)
+                    consumo_riscaldamento = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Riscaldamento"), 2)
+                    consumo_climatizzatore = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Climatizzatore"), 2)
+                    consumo_tapparella = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Tapparella"), 2)
 
-                    inferenze = {
-                        "is_fredda": int(stanza in onto.StanzaFredda.instances()),
-                        "is_calda": int(stanza in onto.StanzaCalda.instances()),
-                        "is_buia": int(stanza in onto.StanzaBuia.instances()),
-                        "is_luminosa": int(stanza in onto.StanzaLuminosissima.instances()),
-                    }
-
-                    dataset.append({
+                    # --- Record base ---
+                    record_base = {
                         "id": idx,
                         "casa": casa.name,
                         "stanza": stanza.name,
+                        "ora_giorno": ora_giorno,
                         "temperatura": temperatura,
                         "umidita": umidita,
                         "illuminazione": illuminazione,
@@ -64,13 +63,34 @@ def main():
                         "consumo_riscaldamento_kW": consumo_riscaldamento,
                         "consumo_climatizzatore_kW": consumo_climatizzatore,
                         "consumo_tapparella_kW": consumo_tapparella,
-                        **inferenze
-                    })
+                    }
+                    dataset_base.append(record_base)
+
+                    # --- Record con inferenze ---
+                    inferenze = {
+                        "is_fredda": int(stanza in onto.StanzaFredda.instances()),
+                        "is_calda": int(stanza in onto.StanzaCalda.instances()),
+                        "is_buia": int(stanza in onto.StanzaBuia.instances()),
+                        "is_luminosa": int(stanza in onto.StanzaLuminosissima.instances()),
+                        "is_buia_notte_occ": int(stanza in onto.StanzaBuiaNotteOccupata.instances()),
+                    }
+                    record_enhanced = {**record_base, **inferenze}
+                    dataset_enhanced.append(record_enhanced)
+
                     idx += 1
 
-    df = pd.DataFrame(dataset)
-    df.to_csv(output_path, index=False)
-    print(f"Dataset generato in '{os.path.relpath(output_path)}' ({len(df)} righe).")
+    # --- Salvataggio ---
+    df_base = pd.DataFrame(dataset_base)
+    df_enhanced = pd.DataFrame(dataset_enhanced)
+
+    path_base = os.path.join(output_dir, "SmartHome_base.csv")
+    path_enhanced = os.path.join(output_dir, "SmartHome_KB_enhanced.csv")
+
+    df_base.to_csv(path_base, index=False)
+    df_enhanced.to_csv(path_enhanced, index=False)
+
+    print(f"Dataset base generato in '{os.path.relpath(path_base)}' ({len(df_base)} righe).")
+    print(f"Dataset KB-enhanced generato in '{os.path.relpath(path_enhanced)}' ({len(df_enhanced)} righe).")
 
 if __name__ == "__main__":
     main()

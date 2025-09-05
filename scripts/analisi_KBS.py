@@ -8,7 +8,7 @@ def main():
 
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     ont_path = os.path.join(base_dir, "ontology", "smarthome_popolata.owl")
-    csv_path = os.path.join(base_dir, "data", "SmartHome.csv")
+    csv_path = os.path.join(base_dir, "data", "SmartHome_base.csv")
     report_path = os.path.join(base_dir, "data", "report_KBS_reasoning.csv")
 
     if not os.path.exists(ont_path):
@@ -21,8 +21,11 @@ def main():
     print(f"Ontologia caricata: {len(list(onto.classes()))} classi, {len(list(onto.individuals()))} individui.")
 
     print("\nEsecuzione reasoner...")
+    start = time.time()
     with onto:
         sync_reasoner(infer_property_values=True, debug=0)
+    end = time.time()
+    print(f"Tempo di reasoning: {end - start:.2f} secondi.")
     print("Reasoner completato.")
 
     df = pd.read_csv(csv_path)
@@ -32,7 +35,8 @@ def main():
     stanze_cat = {
         "StanzaDaRiscaldare": list(onto.StanzaDaRiscaldare.instances()),
         "StanzaEnergiaAlta": list(onto.StanzaEnergiaAlta.instances()),
-        "StanzaLuminosissima": list(onto.StanzaLuminosissima.instances())
+        "StanzaLuminosissima": list(onto.StanzaLuminosissima.instances()),
+        "StanzaBuiaNotteOccupata": list(onto.StanzaBuiaNotteOccupata.instances()),
     }
 
     for cat, stanze in stanze_cat.items():
@@ -45,16 +49,14 @@ def main():
             print("Nessuna stanza inferita.")
 
     # Azioni suggerite usando regole.py
-    print("\nAzioni suggerite per le stanze.")
+    print("\nAzioni suggerite per le stanze nel report_CSV.")
     azioni_per_stanza = {}
     for s in onto.Stanza.instances():
         stato = s.haStato[0] if s.haStato else None
         if stato:
-            acts = azioni_da_regole(stato.haIlluminazione, stato.haTemperatura, stato.haOccupazione)
+            acts = azioni_da_regole(stato.haIlluminazione, stato.haTemperatura, stato.haOccupazione, stato.haOrario)
             if acts:
                 azioni_per_stanza[s.name] = acts
-                print("Completato.")
-
 
     # Totale azioni per tipo
     azioni_totali = {}
@@ -62,7 +64,7 @@ def main():
         for a in acts:
             azioni_totali[a] = azioni_totali.get(a, 0) + 1
 
-    print("\nTotale azioni generate per tipo...")
+    print("\nTotale azioni generate per stanza...")
     for az, count in azioni_totali.items():
         print(f"{az}: {count}")
 
