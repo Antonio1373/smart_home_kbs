@@ -98,10 +98,10 @@ def main():
             equivalent_to = [Casa & haStanza.some(Stanza & haPresenza.min(2, Persona))]
 
         class StanzaBuiaNotteOccupata(Stanza):
-            equivalent_to = [StanzaBuia & haPresenza.some(Persona) & haOrario.some(Notte)]
+            equivalent_to = [StanzaFredda & StanzaBuia & haPresenza.some(Persona) & haOrario.some(Notte)]
 
-        class StanzaFreddaEBuiaOccupata(Stanza):
-            equivalent_to = [StanzaFredda & StanzaBuia & haPresenza.some(Persona)]
+        class StanzaDaClimatizzareELuminare(Stanza):
+            equivalent_to = [StanzaCalda & StanzaBuia & haPresenza.some(Persona) & haOrario.some(FasciaEnergeticaBassa)]
 
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
@@ -112,7 +112,7 @@ def main():
     print("Reasoning completato.")
 
     # --- Stampa stanze con profili dedotti ---
-    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaFreddaEBuiaOccupata, StanzaBuiaNotteOccupata, CasaAltaOccupazione, StanzaDaClimatizzare]:
+    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaBuiaNotteOccupata, CasaAltaOccupazione, StanzaDaClimatizzare, StanzaDispendiosa, StanzaDaClimatizzareELuminare]:
         instances = list(cls.instances())
         if instances:
             print(f"\nClassi dedotte '{cls.__name__}':")

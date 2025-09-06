@@ -68,11 +68,12 @@ def main():
 
                     # --- Record con inferenze ---
                     inferenze = {
-                        "is_fredda": int(stanza in onto.StanzaFredda.instances()),
-                        "is_calda": int(stanza in onto.StanzaCalda.instances()),
-                        "is_buia": int(stanza in onto.StanzaBuia.instances()),
-                        "is_luminosa": int(stanza in onto.StanzaLuminosissima.instances()),
-                        "is_buia_notte_occ": int(stanza in onto.StanzaBuiaNotteOccupata.instances()),
+                        "is_StanzaDaRiscaldare": int(stanza in onto.StanzaDaRiscaldare.instances()),
+                        "is_StanzaDaClimatizzare": int(stanza in onto.StanzaDaClimatizzare.instances()),
+                        "is_StanzaAltaOccupazione": int(stanza in onto.StanzaBuia.instances()),
+                        "is_StanzaLuminosissima": int(stanza in onto.StanzaLuminosissima.instances()),
+                        "is_StanzaBuiaNotteOccupata": int(stanza in onto.StanzaBuiaNotteOccupata.instances()),
+                        "is_StanzaDaClimatizzareELuminare": int(stanza in onto.StanzaDaClimatizzareELuminare.instances()),
                     }
                     record_enhanced = {**record_base, **inferenze}
                     dataset_enhanced.append(record_enhanced)
