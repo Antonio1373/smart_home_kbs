@@ -109,7 +109,7 @@ def main():
                 stato = onto.StatoAmbientale(f"Stato_{stanza.name}_{uuid.uuid4().hex[:6]}")
 
                 # Orario casuale
-                orario_cls = random.choice([onto.Giorno, onto.Notte])
+                orario_cls = random.choice([onto.Giorno, onto.Notte, onto.FasciaEnergeticaAlta, onto.FasciaEnergeticaBassa])
                 orario_istanza = orario_cls(f"Orario_{orario_cls.__name__}_{stanza.name}_{uuid.uuid4().hex[:4]}")
                 stanza.haOrario.append(orario_istanza)
 

@@ -5,15 +5,18 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
+from sklearn.preprocessing import StandardScaler
 from joblib import dump
 
 # ---------------- CONFIGURAZIONE MODELLI ----------------
 MODELLI = {
     "RandomForest": RandomForestClassifier(n_estimators=150, random_state=42),
     "LogisticRegression": LogisticRegression(max_iter=5000, solver='lbfgs'),
-    "SVM": SVC(probability=True, kernel='rbf', C=1.0, gamma='scale', random_state=42),
 }
+
+# SVM sarà ottimizzata separatamente
+SVM_PARAMS = {'C':[0.1, 1, 10], 'gamma':[0.01, 0.1, 1]}
 
 # ---------------- FUNZIONI UTILI ----------------
 def carica_dataset(percorso):
@@ -58,10 +61,13 @@ def main():
     ]
 
     # Feature aggiuntive derivanti dalla KB
-    features_kb_extra = ['is_fredda', 'is_calda', 'is_buia', 'is_luminosa', 'is_buia_notte_occ']
+    features_kb_extra = [
+        'is_StanzaDaRiscaldare', 'is_StanzaDaClimatizzare',
+        'is_StanzaAltaOccupazione', 'is_StanzaLuminosissima',
+        'is_StanzaBuiaNotteOccupata', 'is_StanzaDaClimatizzareELuminare'
+    ]
 
     target = 'occupazione'
-
     risultati_comparativi = {}
 
     for label, file in dataset_files.items():
@@ -69,37 +75,48 @@ def main():
         if df is None:
             continue
 
-        # Se dataset KB, aggiungi le feature derivanti dalla KB
-        if label == "KB":
-            features = features_base + features_kb_extra
-        else:
-            features = features_base
-
+        # Feature dataset
+        features = features_base + features_kb_extra if label=="KB" else features_base
         X, y = prepara_dati(df, features, target)
         if len(np.unique(y)) < 2:
             print(f"ERRORE: il target 'occupazione' nel dataset '{label}' ha una sola classe.")
             continue
 
+        # --- SCALING per SVM ---
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
         print(f"Valutazione modelli sul dataset '{label}':")
         risultati_dataset = {}
+
+        # RandomForest e LogisticRegression
         for nome_modello, modello in MODELLI.items():
             scores = valuta_modello_cv(modello, X, y)
             f1_mean = scores.mean()
             f1_std = scores.std()
-
-            # Addestramento finale su tutto il dataset
             modello.fit(X, y)
             salva_modello(modello, base_dir, nome_modello, dataset_label=label)
-
             risultati_dataset[nome_modello] = (f1_mean, f1_std)
             print(f"▶ {nome_modello}: F1 = {f1_mean:.4f} ± {f1_std:.4f}")
+
+        # --- SVM con GridSearch ---
+        svm = SVC(probability=True, kernel='rbf', random_state=42)
+        grid = GridSearchCV(svm, SVM_PARAMS, scoring='f1', cv=5)
+        grid.fit(X_scaled, y)
+        best_svm = grid.best_estimator_
+        scores = cross_val_score(best_svm, X_scaled, y, cv=5, scoring='f1')
+        f1_mean = scores.mean()
+        f1_std = scores.std()
+        salva_modello(best_svm, base_dir, "SVM", dataset_label=label)
+        risultati_dataset["SVM"] = (f1_mean, f1_std)
+        print(f"▶ SVM (GridSearch): F1 = {f1_mean:.4f} ± {f1_std:.4f}")
 
         risultati_comparativi[label] = risultati_dataset
 
     # --- Tabella comparativa finale ---
     print("\n=== Tabella comparativa modelli ===")
     rows = []
-    for modello in MODELLI.keys():
+    for modello in list(MODELLI.keys()) + ["SVM"]:
         f1_base_mean, f1_base_std = risultati_comparativi.get("Base", {}).get(modello, (np.nan, np.nan))
         f1_kb_mean, f1_kb_std = risultati_comparativi.get("KB", {}).get(modello, (np.nan, np.nan))
         differenza = f1_kb_mean - f1_base_mean if not np.isnan(f1_base_mean) and not np.isnan(f1_kb_mean) else np.nan

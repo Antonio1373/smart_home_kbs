@@ -37,6 +37,7 @@ def main():
         "StanzaEnergiaAlta": list(onto.StanzaEnergiaAlta.instances()),
         "StanzaLuminosissima": list(onto.StanzaLuminosissima.instances()),
         "StanzaBuiaNotteOccupata": list(onto.StanzaBuiaNotteOccupata.instances()),
+        "StanzaDaClimatizzareELuminare": list(onto.StanzaDaClimatizzareELuminare.instances()),
     }
 
     for cat, stanze in stanze_cat.items():
