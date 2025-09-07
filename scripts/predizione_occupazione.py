@@ -15,7 +15,7 @@ MODELLI = {
     "LogisticRegression": LogisticRegression(max_iter=5000, solver='lbfgs'),
 }
 
-# SVM sarà ottimizzata separatamente
+# Parametri GridSearch per SVM
 SVM_PARAMS = {'C':[0.1, 1, 10], 'gamma':[0.01, 0.1, 1]}
 
 # ---------------- FUNZIONI UTILI ----------------
@@ -28,7 +28,9 @@ def carica_dataset(percorso):
     return df
 
 def prepara_dati(df, features, target):
-    X = df[features]
+    # Se alcune colonne feature non esistono, le ignora
+    features_valid = [f for f in features if f in df.columns]
+    X = df[features_valid]
     y = df[target]
     return X, y
 
@@ -53,18 +55,18 @@ def main():
         "KB": os.path.join(base_dir, "data", "SmartHome_KB_enhanced.csv")
     }
 
-    # Feature base
     features_base = [
         'ora_giorno', 'temperatura', 'umidita', 'illuminazione',
         'consumo_luce_kW', 'consumo_riscaldamento_kW',
         'consumo_climatizzatore_kW', 'consumo_tapparella_kW'
     ]
 
-    # Feature aggiuntive derivanti dalla KB
+    # Feature derivanti dal reasoning avanzato
     features_kb_extra = [
         'is_StanzaDaRiscaldare', 'is_StanzaDaClimatizzare',
         'is_StanzaAltaOccupazione', 'is_StanzaLuminosissima',
-        'is_StanzaBuiaNotteOccupata', 'is_StanzaDaClimatizzareELuminare'
+        'is_StanzaBuiaNotteOccupata', 'is_StanzaDaClimatizzareELuminare',
+        'is_StanzaFredda', 'is_StanzaCalda', 'is_StanzaDispendiosa'
     ]
 
     target = 'occupazione'
@@ -75,8 +77,8 @@ def main():
         if df is None:
             continue
 
-        # Feature dataset
-        features = features_base + features_kb_extra if label=="KB" else features_base
+        # Feature da usare
+        features = features_base + (features_kb_extra if label=="KB" else [])
         X, y = prepara_dati(df, features, target)
         if len(np.unique(y)) < 2:
             print(f"ERRORE: il target 'occupazione' nel dataset '{label}' ha una sola classe.")
