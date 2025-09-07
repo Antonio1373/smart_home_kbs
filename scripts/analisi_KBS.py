@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from owlready2 import *
 from regole import azioni_da_regole
@@ -12,9 +13,10 @@ def main():
     report_path = os.path.join(base_dir, "data", "report_KBS_reasoning.csv")
 
     if not os.path.exists(ont_path):
-        print (f"ERRORE : Ontologia non trovata: {os.path.relpath(ont_path)}.")
+        print(f"ERRORE: Ontologia non trovata: {os.path.relpath(ont_path)}.")
+        return
     if not os.path.exists(csv_path):
-        print(f"ERRORE : Dataset non trovato: {os.path.relpath(csv_path)}.")
+        print(f"ERRORE: Dataset non trovato: {os.path.relpath(csv_path)}.")
         return
 
     onto = get_ontology(ont_path).load()
@@ -31,13 +33,17 @@ def main():
     df = pd.read_csv(csv_path)
     print(f"Dataset caricato: {len(df)} righe.")
 
-    # Stanze inferite dal reasoner
+    # --- Stanze inferite dal reasoner ---
     stanze_cat = {
+        "StanzaFredda": list(onto.StanzaFredda.instances()),
+        "StanzaCalda": list(onto.StanzaCalda.instances()),
         "StanzaDaRiscaldare": list(onto.StanzaDaRiscaldare.instances()),
-        "StanzaEnergiaAlta": list(onto.StanzaEnergiaAlta.instances()),
+        "StanzaDaClimatizzare": list(onto.StanzaDaClimatizzare.instances()),
         "StanzaLuminosissima": list(onto.StanzaLuminosissima.instances()),
         "StanzaBuiaNotteOccupata": list(onto.StanzaBuiaNotteOccupata.instances()),
         "StanzaDaClimatizzareELuminare": list(onto.StanzaDaClimatizzareELuminare.instances()),
+        "StanzaEnergiaAlta": list(onto.StanzaEnergiaAlta.instances()),
+        "StanzaDispendiosa": list(onto.StanzaDispendiosa.instances()),
     }
 
     for cat, stanze in stanze_cat.items():
@@ -45,17 +51,23 @@ def main():
         if stanze:
             for s in stanze:
                 stato = s.haStato[0] if s.haStato else None
-                print(f"- {s.name}.")
+                info_stato = f" (Temp: {stato.haTemperatura}, Lumi: {stato.haIlluminazione})" if stato else ""
+                print(f"- {s.name}{info_stato}")
         else:
             print("Nessuna stanza inferita.")
 
-    # Azioni suggerite usando regole.py
-    print("\nAzioni suggerite per le stanze nel report_CSV.")
+    # --- Azioni suggerite usando regole.py ---
+    print("\nAzioni suggerite per le stanze nel report CSV.")
     azioni_per_stanza = {}
     for s in onto.Stanza.instances():
         stato = s.haStato[0] if s.haStato else None
         if stato:
-            acts = azioni_da_regole(stato.haIlluminazione, stato.haTemperatura, stato.haOccupazione, stato.haOrario)
+            acts = azioni_da_regole(
+                stato.haIlluminazione, 
+                stato.haTemperatura, 
+                stato.haOccupazione, 
+                stato.haOrario[0] if stato.haOrario else None
+            )
             if acts:
                 azioni_per_stanza[s.name] = acts
 
@@ -65,10 +77,11 @@ def main():
         for a in acts:
             azioni_totali[a] = azioni_totali.get(a, 0) + 1
 
-    print("\nTotale azioni generate per stanza...")
+    print("\nTotale azioni generate per tipo:")
     for az, count in azioni_totali.items():
         print(f"{az}: {count}")
 
+    # --- Salvataggio report ---
     report_data = []
     for stanza, acts in azioni_per_stanza.items():
         for az in acts:
