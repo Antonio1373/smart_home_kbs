@@ -18,14 +18,14 @@ CONSUMO_DISPOSITIVI = {
 }
 
 # Parametri per stato ambientale
-TEMPERATURE_RANGE = [(15, 18), (19, 22), (23, 27), (28, 32)]  # fredda, normale, calda, molto calda
-LUCE_RANGE = [(0, 100), (101, 300), (301, 600), (601, 900)]   # buia, medio-bassa, normale, molto luminosa
-UMIDITA_RANGE = [(20, 35), (36, 55), (56, 70)]                # secca, normale, umida
+TEMPERATURE_RANGE = [(15, 18), (19, 22), (23, 27), (28, 32)]
+LUCE_RANGE = [(0, 100), (101, 300), (301, 600), (601, 900)]
+UMIDITA_RANGE = [(20, 35), (36, 55), (56, 70)]
 
-PROB_VALORI_ESTREMI = 0.35
+PROB_VALORI_ESTREMI = 0.25
+PROB_STATO_PROLUNGATO = 0.3  # Probabilità di durata > 30 minuti
 
 def genera_valore_con_range(ranges):
-    """Sceglie casualmente un range e genera un valore uniforme al suo interno"""
     r = random.choice(ranges)
     return round(random.uniform(r[0], r[1]), 1)
 
@@ -87,14 +87,8 @@ def main():
 
                 # Consumi realistici
                 for disp in stanza.haDispositivo:
-                    if isinstance(disp, onto.Luce):
-                        low, high = CONSUMO_DISPOSITIVI["Luce"]
-                    elif isinstance(disp, onto.Riscaldamento):
-                        low, high = CONSUMO_DISPOSITIVI["Riscaldamento"]
-                    elif isinstance(disp, onto.Climatizzatore):
-                        low, high = CONSUMO_DISPOSITIVI["Climatizzatore"]
-                    elif isinstance(disp, onto.Tapparella):
-                        low, high = CONSUMO_DISPOSITIVI["Tapparella"]
+                    tipo = disp.__class__.__name__
+                    low, high = CONSUMO_DISPOSITIVI.get(tipo, (0.1, 1.0))
                     disp.haConsumo = round(random.uniform(low, high), 2)
 
             # Persone
@@ -118,12 +112,16 @@ def main():
                 stato.haIlluminazione = genera_valore_con_range(LUCE_RANGE)
                 stato.haUmidita = genera_valore_con_range(UMIDITA_RANGE)
                 stato.haOccupazione = bool(stanza.haPresenza)
-                stanza.haStato.append(stato)
+
+                # Durata dello stato per regole temporali
+                stato.haDurata = round(random.uniform(10, 60), 1) if random.random() < PROB_STATO_PROLUNGATO else round(random.uniform(1, 29), 1)
 
                 # Valori estremi occasionali
                 if random.random() < PROB_VALORI_ESTREMI:
                     stato.haTemperatura = random.choice([15.0, 32.0])
                     stato.haIlluminazione = random.choice([0.0, 900.0])
+
+                stanza.haStato.append(stato)
 
                 # --- Azioni suggerite ---
                 azioni_python = azioni_da_regole(
@@ -141,14 +139,15 @@ def main():
                     azione_istanza = AzClasse(azione_nome)
 
                     # Collega al dispositivo corretto
-                    if "Luce" in az:
-                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Luce)])
-                    elif "Riscaldamento" in az:
-                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Riscaldamento)])
-                    elif "Climatizzatore" in az:
-                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Climatizzatore)])
-                    elif "Tapparella" in az:
-                        azione_istanza.controllaDispositivo.extend([d for d in stanza.haDispositivo if isinstance(d, onto.Tapparella)])
+                    for disp in stanza.haDispositivo:
+                        if "Luce" in az and isinstance(disp, onto.Luce):
+                            azione_istanza.controllaDispositivo.append(disp)
+                        elif "Riscaldamento" in az and isinstance(disp, onto.Riscaldamento):
+                            azione_istanza.controllaDispositivo.append(disp)
+                        elif "Climatizzatore" in az and isinstance(disp, onto.Climatizzatore):
+                            azione_istanza.controllaDispositivo.append(disp)
+                        elif "Tapparella" in az and isinstance(disp, onto.Tapparella):
+                            azione_istanza.controllaDispositivo.append(disp)
 
                     stato.suggerisceAzione.append(azione_istanza)
 

@@ -35,7 +35,8 @@ def main():
         for stanza in casa.haStanza:
             for stato in stanza.haStato:
                 for _ in range(RIGHE_PER_STANZA):
-                    occupazione = 1 if len(stanza.haPresenza) > 0 else 0
+                    # Occupazione
+                    occupazione = int(getattr(stato, "haOccupazione", 0))
                     ora_giorno = random.randint(0, 23)  # Orario simulato
 
                     # Valori grezzi dalla KB
@@ -43,11 +44,11 @@ def main():
                     illuminazione = getattr(stato, "haIlluminazione", 400)
                     umidita = getattr(stato, "haUmidita", 45)
 
-                    # Consumi dei dispositivi
-                    consumo_luce = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Luce"), 2)
-                    consumo_riscaldamento = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Riscaldamento"), 2)
-                    consumo_climatizzatore = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Climatizzatore"), 2)
-                    consumo_tapparella = round(max(disp.haConsumo for disp in stanza.haDispositivo if disp.__class__.__name__=="Tapparella"), 2)
+                    # Consumi dei dispositivi (default 0 se assente)
+                    consumo_luce = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Luce)], default=0), 2)
+                    consumo_riscaldamento = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Riscaldamento)], default=0), 2)
+                    consumo_climatizzatore = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Climatizzatore)], default=0), 2)
+                    consumo_tapparella = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Tapparella)], default=0), 2)
 
                     # --- Record base ---
                     record_base = {
@@ -66,21 +67,24 @@ def main():
                     }
                     dataset_base.append(record_base)
 
-                    # --- Record con inferenze ---
+                    # --- Record con inferenze KB avanzate ---
                     inferenze = {
+                        "is_StanzaFredda": int(stanza in onto.StanzaFredda.instances()),
+                        "is_StanzaCalda": int(stanza in onto.StanzaCalda.instances()),
+                        "is_StanzaBuia": int(stanza in onto.StanzaBuia.instances()),
+                        "is_StanzaLuminosissima": int(stanza in onto.StanzaLuminosissima.instances()),
                         "is_StanzaDaRiscaldare": int(stanza in onto.StanzaDaRiscaldare.instances()),
                         "is_StanzaDaClimatizzare": int(stanza in onto.StanzaDaClimatizzare.instances()),
-                        "is_StanzaAltaOccupazione": int(stanza in onto.StanzaBuia.instances()),
-                        "is_StanzaLuminosissima": int(stanza in onto.StanzaLuminosissima.instances()),
                         "is_StanzaBuiaNotteOccupata": int(stanza in onto.StanzaBuiaNotteOccupata.instances()),
                         "is_StanzaDaClimatizzareELuminare": int(stanza in onto.StanzaDaClimatizzareELuminare.instances()),
+                        "is_StanzaDispendiosa": int(stanza in onto.StanzaDispendiosa.instances())
                     }
                     record_enhanced = {**record_base, **inferenze}
                     dataset_enhanced.append(record_enhanced)
 
                     idx += 1
 
-    # --- Salvataggio ---
+    # --- Salvataggio dataset ---
     df_base = pd.DataFrame(dataset_base)
     df_enhanced = pd.DataFrame(dataset_enhanced)
 
