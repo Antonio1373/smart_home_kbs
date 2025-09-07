@@ -11,7 +11,6 @@ def main():
 
     onto = get_ontology("http://example.org/ontology/smarthome.owl")
 
-
     with onto:
         # --- CLASSI BASE ---
         class Casa(Thing): pass
@@ -59,6 +58,7 @@ def main():
         class haIlluminazione(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haOccupazione(StatoAmbientale >> bool, DataProperty, FunctionalProperty): pass
         class haUmidita(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
+        class haDurata(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass  # durata in minuti
 
         # --- PROPRIETÀ OGGETTO ---
         class haStanza(Casa >> Stanza, ObjectProperty): pass
@@ -84,7 +84,24 @@ def main():
         class StanzaDispendiosa(Stanza):
             equivalent_to = [Stanza & haDispositivo.some(Dispositivo & (haConsumo > 1.5))]
 
-        # Profili stanza combinati
+        # --- CLASSI DERIVATE AVANZATE ---
+        # Stanza fredda da più di 30 minuti
+        class StanzaFreddaProlungata(Stanza):
+            equivalent_to = [StanzaFredda & haStato.some(StatoAmbientale & (haDurata >= 30.0))]
+
+        # Stanza occupata e fredda, fascia energetica alta
+        class StanzaDaRiscaldareAltaOccupazione(Stanza):
+            equivalent_to = [
+                StanzaFredda & haPresenza.min(2, Persona) & haOrario.some(FasciaEnergeticaAlta)
+            ]
+
+        # Stanza calda e luminosa con presenza → climatizzazione e tapparelle
+        class StanzaDaClimatizzareELuminareOccupata(Stanza):
+            equivalent_to = [
+                StanzaCalda & StanzaLuminosissima & haPresenza.some(Persona)
+            ]
+
+        # Profili combinati più ricchi
         class StanzaDaRiscaldare(Stanza):
             equivalent_to = [StanzaFredda & haPresenza.some(Persona)]
 
@@ -103,6 +120,7 @@ def main():
         class StanzaDaClimatizzareELuminare(Stanza):
             equivalent_to = [StanzaCalda & StanzaBuia & haPresenza.some(Persona) & haOrario.some(FasciaEnergeticaBassa)]
 
+    # --- SALVATAGGIO ONTOLOGIA ---
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
 
@@ -112,7 +130,15 @@ def main():
     print("Reasoning completato.")
 
     # --- Stampa stanze con profili dedotti ---
-    for cls in [StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima, StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaBuiaNotteOccupata, CasaAltaOccupazione, StanzaDaClimatizzare, StanzaDispendiosa, StanzaDaClimatizzareELuminare]:
+    derived_classes = [
+        StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima,
+        StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaBuiaNotteOccupata,
+        CasaAltaOccupazione, StanzaDaClimatizzare, StanzaDispendiosa,
+        StanzaDaClimatizzareELuminare, StanzaFreddaProlungata,
+        StanzaDaRiscaldareAltaOccupazione, StanzaDaClimatizzareELuminareOccupata
+    ]
+
+    for cls in derived_classes:
         instances = list(cls.instances())
         if instances:
             print(f"\nClassi dedotte '{cls.__name__}':")
