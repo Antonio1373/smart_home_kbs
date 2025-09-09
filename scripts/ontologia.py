@@ -12,7 +12,7 @@ def main():
     onto = get_ontology("http://example.org/ontology/smarthome.owl")
 
     with onto:
-        # --- CLASSI BASE ---
+        # CLASSI BASE
         class Casa(Thing): pass
         class Stanza(Thing): pass
         class Persona(Thing): pass
@@ -21,13 +21,13 @@ def main():
         class StatoAmbientale(Thing): pass
         class Azione(Thing): pass
 
-        # --- SOTTOCLASSI STANZA ---
+        # SOTTOCLASSI STANZA
         class Soggiorno(Stanza): pass
         class Camera(Stanza): pass
         class Cucina(Stanza): pass
         class Bagno(Stanza): pass
 
-        # --- SOTTOCLASSI DISPOSITIVO ---
+        # SOTTOCLASSI DISPOSITIVO
         class Luce(Dispositivo): pass
         class Riscaldamento(Dispositivo): pass
         class Climatizzatore(Dispositivo): pass
@@ -35,7 +35,7 @@ def main():
         class Frigorifero(Dispositivo): pass
         class Forno(Dispositivo): pass
 
-        # --- SOTTOCLASSI AZIONE ---
+        # SOTTOCLASSI AZIONE
         class AccendiLuce(Azione): pass
         class SpegniLuce(Azione): pass
         class AccendiRiscaldamento(Azione): pass
@@ -45,22 +45,22 @@ def main():
         class AlzaTapparelle(Azione): pass
         class AbbassaTapparelle(Azione): pass
 
-        # --- CONCETTI TEMPORALI ---
+        # CONCETTI TEMPORALI
         class Orario(Thing): pass
         class Giorno(Orario): pass
         class Notte(Orario): pass
         class FasciaEnergeticaAlta(Orario): pass
         class FasciaEnergeticaBassa(Orario): pass
 
-        # --- PROPRIETÀ DATI ---
+        # PROPRIETÀ DATI
         class haConsumo(Dispositivo >> float, DataProperty, FunctionalProperty): pass
         class haTemperatura(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haIlluminazione(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
         class haOccupazione(StatoAmbientale >> bool, DataProperty, FunctionalProperty): pass
         class haUmidita(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
-        class haDurata(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass  # durata in minuti
+        class haDurata(StatoAmbientale >> float, DataProperty, FunctionalProperty): pass
 
-        # --- PROPRIETÀ OGGETTO ---
+        # PROPRIETÀ OGGETTO
         class haStanza(Casa >> Stanza, ObjectProperty): pass
         class haDispositivo(Stanza >> Dispositivo, ObjectProperty): pass
         class haSensore(Stanza >> Sensore, ObjectProperty): pass
@@ -71,8 +71,7 @@ def main():
         class haOrario(Stanza >> Orario, ObjectProperty): pass
         class confinaCon(Stanza >> Stanza, SymmetricProperty): pass  
 
-        # --- CLASSI DERIVATE PER REASONING ---
-        # Stato stanza
+        # CLASSI DERIVATE PER REASONING
         class StanzaFredda(Stanza):
             equivalent_to = [Stanza & haStato.some(StatoAmbientale & (haTemperatura < 20.0))]
         class StanzaCalda(Stanza):
@@ -84,24 +83,21 @@ def main():
         class StanzaDispendiosa(Stanza):
             equivalent_to = [Stanza & haDispositivo.some(Dispositivo & (haConsumo > 1.5))]
 
-        # --- CLASSI DERIVATE AVANZATE ---
+        # CLASSI DERIVATE AVANZATE
         # Stanza fredda da più di 30 minuti
         class StanzaFreddaProlungata(Stanza):
             equivalent_to = [StanzaFredda & haStato.some(StatoAmbientale & (haDurata >= 30.0))]
 
-        # Stanza occupata e fredda, fascia energetica alta
         class StanzaDaRiscaldareAltaOccupazione(Stanza):
             equivalent_to = [
                 StanzaFredda & haPresenza.min(2, Persona) & haOrario.some(FasciaEnergeticaAlta)
             ]
 
-        # Stanza calda e luminosa con presenza → climatizzazione e tapparelle
         class StanzaDaClimatizzareELuminareOccupata(Stanza):
             equivalent_to = [
                 StanzaCalda & StanzaLuminosissima & haPresenza.some(Persona)
             ]
 
-        # Profili combinati più ricchi
         class StanzaDaRiscaldare(Stanza):
             equivalent_to = [StanzaFredda & haPresenza.some(Persona)]
 
@@ -120,16 +116,13 @@ def main():
         class StanzaDaClimatizzareELuminare(Stanza):
             equivalent_to = [StanzaCalda & StanzaBuia & haPresenza.some(Persona) & haOrario.some(FasciaEnergeticaBassa)]
 
-    # --- SALVATAGGIO ONTOLOGIA ---
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia salvata in '{os.path.relpath(output_path)}'.")
 
-    # --- ESEGUI REASONER ---
     print("\nAvvio reasoner Pellet per inferenze...")
     sync_reasoner_pellet(infer_property_values=True, debug=0)
     print("Reasoning completato.")
 
-    # --- Stampa stanze con profili dedotti ---
     derived_classes = [
         StanzaFredda, StanzaCalda, StanzaBuia, StanzaLuminosissima,
         StanzaDaRiscaldare, StanzaEnergiaAlta, StanzaBuiaNotteOccupata,

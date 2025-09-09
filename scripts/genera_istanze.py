@@ -4,7 +4,6 @@ import random
 from owlready2 import *
 from regole import azioni_da_regole
 
-# ----------------- PARAMETRI DI PROGETTO -----------------
 NUM_CASE = 50                   # Numero di case simulate
 STANZE_PER_CASA = ["Soggiorno", "Cucina", "Camera", "Bagno"]
 PERSONE_PER_CASA = 3            # Numero medio di persone per casa
@@ -56,7 +55,7 @@ def main():
     }
 
     with onto:
-        # ----------------- CREAZIONE CASE E STANZE -----------------
+        # CREAZIONE CASE E STANZE
         for c in range(1, NUM_CASE + 1):
             casa = onto.Casa(f"Casa{c}")
             case.append(casa)
@@ -68,7 +67,7 @@ def main():
                 stanze.append(stanza)
             casa.haStanza.extend(stanze)
 
-        # ----------------- CREAZIONE DISPOSITIVI E PERSONE -----------------
+        # CREAZIONE DISPOSITIVI E PERSONE
         for casa in case:
             for stanza in casa.haStanza:
                 # Sensori
@@ -97,7 +96,7 @@ def main():
                 stanza = random.choice(casa.haStanza)
                 stanza.haPresenza.append(persona)
 
-        # ----------------- STATO AMBIENTALE E AZIONI -----------------
+        # STATO AMBIENTALE E AZIONI
         for casa in case:
             for stanza in casa.haStanza:
                 stato = onto.StatoAmbientale(f"Stato_{stanza.name}_{uuid.uuid4().hex[:6]}")
@@ -151,7 +150,6 @@ def main():
 
                     stato.suggerisceAzione.append(azione_istanza)
 
-        # ----------------- ESECUZIONE REASONER -----------------
         print("\nEsecuzione reasoner per inferenze sulle stanze...")
         try:
             sync_reasoner_pellet(infer_property_values=True, debug=0)
@@ -159,7 +157,6 @@ def main():
         except Exception as e:
             print(f"ATTENZIONE: Errore nel reasoner: {e}")
 
-    # ----------------- SALVATAGGIO ONTOLOGIA -----------------
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     onto.save(file=output_path, format="rdfxml")
     print(f"Ontologia popolata salvata in '{os.path.relpath(output_path)}'.")

@@ -3,11 +3,9 @@ import random
 import pandas as pd
 from owlready2 import get_ontology, sync_reasoner
 
-# ---------------- CONFIGURAZIONE ----------------
 ONTO_FILE = "ontology/smarthome_popolata.owl"
 OUTPUT_DIR = "data"
 RIGHE_PER_STANZA = 1  # Numero di campioni per stanza
-# ------------------------------------------------
 
 def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -50,7 +48,7 @@ def main():
                     consumo_climatizzatore = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Climatizzatore)], default=0), 2)
                     consumo_tapparella = round(max([disp.haConsumo for disp in stanza.haDispositivo if isinstance(disp, onto.Tapparella)], default=0), 2)
 
-                    # --- Record base ---
+                    # Record base 
                     record_base = {
                         "id": idx,
                         "casa": casa.name,
@@ -67,7 +65,7 @@ def main():
                     }
                     dataset_base.append(record_base)
 
-                    # --- Record con inferenze KB avanzate ---
+                    # Record con inferenze KB avanzate
                     inferenze = {
                         "is_StanzaFredda": int(stanza in onto.StanzaFredda.instances()),
                         "is_StanzaCalda": int(stanza in onto.StanzaCalda.instances()),
@@ -84,7 +82,6 @@ def main():
 
                     idx += 1
 
-    # --- Salvataggio dataset ---
     df_base = pd.DataFrame(dataset_base)
     df_enhanced = pd.DataFrame(dataset_enhanced)
 

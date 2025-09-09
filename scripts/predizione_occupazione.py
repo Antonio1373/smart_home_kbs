@@ -9,7 +9,6 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearch
 from sklearn.preprocessing import StandardScaler
 from joblib import dump
 
-# ---------------- CONFIGURAZIONE MODELLI ----------------
 MODELLI = {
     "RandomForest": RandomForestClassifier(n_estimators=150, random_state=42),
     "LogisticRegression": LogisticRegression(max_iter=5000, solver='lbfgs'),
@@ -18,7 +17,6 @@ MODELLI = {
 # Parametri GridSearch per SVM
 SVM_PARAMS = {'C':[0.1, 1, 10], 'gamma':[0.01, 0.1, 1]}
 
-# ---------------- FUNZIONI UTILI ----------------
 def carica_dataset(percorso):
     if not os.path.exists(percorso):
         print(f"ERRORE: file dataset '{percorso}' non trovato.")
@@ -47,7 +45,6 @@ def salva_modello(model, base_dir, nome_modello, dataset_label):
     dump(model, percorso_specifico)
     print(f"Modello salvato in: {os.path.relpath(percorso_specifico)}")
 
-# ---------------- MAIN ----------------
 def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     dataset_files = {
@@ -84,7 +81,7 @@ def main():
             print(f"ERRORE: il target 'occupazione' nel dataset '{label}' ha una sola classe.")
             continue
 
-        # --- SCALING per SVM ---
+        # SCALING per SVM
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
@@ -101,7 +98,7 @@ def main():
             risultati_dataset[nome_modello] = (f1_mean, f1_std)
             print(f"▶ {nome_modello}: F1 = {f1_mean:.4f} ± {f1_std:.4f}")
 
-        # --- SVM con GridSearch ---
+        # SVM con GridSearch
         svm = SVC(probability=True, kernel='rbf', random_state=42)
         grid = GridSearchCV(svm, SVM_PARAMS, scoring='f1', cv=5)
         grid.fit(X_scaled, y)
@@ -115,7 +112,7 @@ def main():
 
         risultati_comparativi[label] = risultati_dataset
 
-    # --- Tabella comparativa finale ---
+    # Tabella finale
     print("\n=== Tabella comparativa modelli ===")
     rows = []
     for modello in list(MODELLI.keys()) + ["SVM"]:

@@ -1,4 +1,4 @@
-# ---------- REGOLA LUCE ----------
+# REGOLA LUCE 
 def regola_luce(illuminazione, occupazione, orario):
     if not occupazione:
         if illuminazione >= 300:
@@ -18,7 +18,7 @@ def regola_luce(illuminazione, occupazione, orario):
     return "Nessuna azione"
 
 
-# ---------- REGOLA RISCALDAMENTO ----------
+# REGOLA RISCALDAMENTO
 def regola_riscaldamento(temperatura, occupazione, orario):
     if not occupazione:
         if temperatura >= 25:
@@ -38,7 +38,7 @@ def regola_riscaldamento(temperatura, occupazione, orario):
     return "Nessuna azione"
 
 
-# ---------- REGOLA TAPPARELLE ----------
+# REGOLA TAPPARELLE
 def regola_tapparelle(illuminazione, occupazione, orario):
     if not occupazione:
         if illuminazione >= 800:
@@ -58,7 +58,7 @@ def regola_tapparelle(illuminazione, occupazione, orario):
     return "Nessuna azione"
 
 
-# ---------- REGOLA CLIMATIZZATORE ----------
+# REGOLA CLIMATIZZATORE 
 def regola_climatizzatore(temperatura, occupazione, orario):
     if not occupazione:
         if temperatura <= 21:
@@ -78,7 +78,7 @@ def regola_climatizzatore(temperatura, occupazione, orario):
     return "Nessuna azione"
 
 
-# ---------- REGOLE COMBINATE ----------
+# REGOLE COMBINATE
 def regola_combinata(temperatura, illuminazione, occupazione, orario):
     # Caso: stanza occupata, buia e fredda
     if occupazione and illuminazione < 100 and temperatura < 18:
@@ -95,7 +95,7 @@ def regola_combinata(temperatura, illuminazione, occupazione, orario):
     return []
 
 
-# ---------- FUNZIONE DI AGGREGAZIONE ----------
+# FUNZIONE DI AGGREGAZIONE 
 def azioni_da_regole(illuminazione, temperatura, occupazione, orario="Giorno"):
     azioni = [
         regola_luce(illuminazione, occupazione, orario),

@@ -12,7 +12,6 @@ def main():
 
     onto = get_ontology(kb_path).load()
 
-    # --- Mappatura azione -> classe KB ---
     azione_to_classe = {
         "AccendiLuce": onto.AccendiLuce,
         "SpegniLuce": onto.SpegniLuce,
@@ -26,7 +25,7 @@ def main():
 
     print("\nApplicazione regole Python e confronto con inferenze reasoner...\n")
 
-    # --- Esegui reasoner per aggiornare le classi derivabili ---
+    # Eseguo reasoner per aggiornare le classi derivabili
     with onto:
         try:
             sync_reasoner(infer_property_values=True, debug=0)
@@ -53,7 +52,6 @@ def main():
             # --- Azioni già presenti in KB ---
             azioni_kb_before = [a.__class__.__name__ for a in stato.suggerisceAzione]
 
-            # --- Log confronto ---
             print(f"\nStanza: {stanza.name}")
             print(f" - Azioni Python: {azioni_python}")
             print(f" - Azioni KB: {azioni_kb_before}")
@@ -68,7 +66,7 @@ def main():
             else:
                 print("Azioni coerenti tra Python e KB.")
 
-            # --- Opzionale: aggiungi azioni KB mancanti direttamente ---
+            # aggiungo azioni KB mancanti direttamente
             for az in azioni_python:
                 az_clean = az.replace(" ", "")
                 if az_clean.lower() not in azioni_kb_clean:

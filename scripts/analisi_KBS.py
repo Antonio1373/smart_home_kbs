@@ -33,7 +33,7 @@ def main():
     df = pd.read_csv(csv_path)
     print(f"Dataset caricato: {len(df)} righe.")
 
-    # --- Stanze inferite dal reasoner ---
+    # Stanze inferite dal reasoner
     stanze_cat = {
         "StanzaFredda": list(onto.StanzaFredda.instances()),
         "StanzaCalda": list(onto.StanzaCalda.instances()),
@@ -56,7 +56,7 @@ def main():
         else:
             print("Nessuna stanza inferita.")
 
-    # --- Azioni suggerite usando regole.py ---
+    # Azioni suggerite usando regole.py 
     print("\nAzioni suggerite per le stanze nel report CSV.")
     azioni_per_stanza = {}
     for s in onto.Stanza.instances():
@@ -71,7 +71,6 @@ def main():
             if acts:
                 azioni_per_stanza[s.name] = acts
 
-    # Totale azioni per tipo
     azioni_totali = {}
     for acts in azioni_per_stanza.values():
         for a in acts:
@@ -81,7 +80,6 @@ def main():
     for az, count in azioni_totali.items():
         print(f"{az}: {count}")
 
-    # --- Salvataggio report ---
     report_data = []
     for stanza, acts in azioni_per_stanza.items():
         for az in acts:
